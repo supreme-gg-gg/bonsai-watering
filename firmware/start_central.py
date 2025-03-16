@@ -49,11 +49,9 @@ async def scan_and_connect():
                 async with BleakClient(phone_device.address) as client:
                     print(f"Connected to {phone_device.name}!")
                     
-                    # Discover services and characteristics
-                    services = await client.get_services()
                     moisture_char = None
                     
-                    for service in services:
+                    for service in client.services.values():
                         print(f"Service: {service.uuid}")
                         if service.uuid.lower() == MOISTURE_SERVICE_UUID.lower():
                             for char in service.characteristics:
