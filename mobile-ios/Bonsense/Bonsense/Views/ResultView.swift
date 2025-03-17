@@ -10,10 +10,11 @@ import SwiftUI
 struct ResultView: View {
 	@ObservedObject var viewModel: ResultViewModel
 	@Environment(\.presentationMode) var presentationMode
+	@Environment(\.colorScheme) private var colorScheme
 	
 	var body: some View {
 		ZStack {
-			BonsaiTheme.backgroundGradient
+			BonsaiTheme.backgroundGradient(for: colorScheme)
 				.ignoresSafeArea()
 			
 			VStack(spacing: 25) {

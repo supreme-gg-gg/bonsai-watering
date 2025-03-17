@@ -9,11 +9,12 @@ import SwiftUI
 
 struct LandingView: View {
 	@StateObject private var viewModel = LandingViewModel()
+	@Environment(\.colorScheme) private var colorScheme
 	
 	var body: some View {
 		NavigationView {
 			ZStack {
-				BonsaiTheme.backgroundGradient
+				BonsaiTheme.backgroundGradient(for: colorScheme)
 					.ignoresSafeArea()
 				
 				VStack(spacing: 40) {
@@ -110,6 +111,12 @@ struct LandingView: View {
 	}
 }
 
-#Preview {
+#Preview("Light Mode") {
 	LandingView()
+		.environment(\.colorScheme, .light)
+}
+
+#Preview("Dark Mode") {
+	LandingView()
+		.environment(\.colorScheme, .dark)
 }
