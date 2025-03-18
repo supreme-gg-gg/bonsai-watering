@@ -34,26 +34,11 @@ struct BonsaiTheme {
 	}
 	
 	// Backgrounds
-	static func backgroundGradient(for colorScheme: ColorScheme) -> LinearGradient {
-		switch colorScheme {
-		case .light:
-			return LinearGradient(
-				gradient: Gradient(colors: [sandBeige.opacity(0.5), Color.white]),
-				startPoint: .top,
-				endPoint: .bottom
-			)
-		case .dark:
-			return LinearGradient(
-				gradient: Gradient(colors: [Color.black.opacity(0.7), primaryGreen.opacity(0.3)]),
-				startPoint: .top,
-				endPoint: .bottom
-			)
-		@unknown default:
-			return LinearGradient(
-				gradient: Gradient(colors: [sandBeige.opacity(0.5), Color.white]),
-				startPoint: .top,
-				endPoint: .bottom
-			)
-		}
+	static func backgroundGradient() -> LinearGradient {
+		return LinearGradient(
+			gradient: Gradient(colors: [sandBeige.opacity(0.5), primaryGreen.opacity(0.3)]),
+			startPoint: .top,
+			endPoint: .bottom
+		)
 	}
 }

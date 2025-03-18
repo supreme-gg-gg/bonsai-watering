@@ -10,11 +10,10 @@ import SwiftUI
 struct SensorReadingView: View {
 	@ObservedObject var bluetoothViewModel: BluetoothViewModel
 	@Environment(\.presentationMode) var presentationMode
-	@Environment(\.colorScheme) private var colorScheme
 	
 	var body: some View {
 		ZStack {
-			BonsaiTheme.backgroundGradient(for: colorScheme)
+			BonsaiTheme.backgroundGradient()
 				.ignoresSafeArea()
 			
 			VStack(spacing: 25) {
@@ -135,7 +134,6 @@ struct SensorReadingView: View {
 	viewModel.message = "Searching for Raspberry Pi..."
 	
 	return SensorReadingView(bluetoothViewModel: viewModel)
-		.environment(\.colorScheme, .light)
 }
 
 #Preview("Connected") {
@@ -145,6 +143,4 @@ struct SensorReadingView: View {
 	viewModel.message = "Connected to Bonsai Sensor"
 	
 	return SensorReadingView(bluetoothViewModel: viewModel)
-		.environment(\.colorScheme, .light
-		)
 }

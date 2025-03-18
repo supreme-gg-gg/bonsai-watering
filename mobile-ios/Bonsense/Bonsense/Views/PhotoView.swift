@@ -15,11 +15,10 @@ struct PhotoView: View {
 	@StateObject private var viewModel = PhotoViewModel()
 	@State private var isShowingCamera = false
 	@Environment(\.presentationMode) var presentationMode
-	@Environment(\.colorScheme) private var colorScheme
 	
 	var body: some View {
 		ZStack {
-			BonsaiTheme.backgroundGradient(for: colorScheme)
+			BonsaiTheme.backgroundGradient()
 				.ignoresSafeArea()
 			
 			VStack(spacing: 25) {
@@ -161,10 +160,8 @@ struct CameraView: UIViewControllerRepresentable {
 
 #Preview("Light Mode") {
 	PhotoView()
-		.environment(\.colorScheme, .light)
 }
 
 #Preview("Dark Mode") {
 	PhotoView()
-		.environment(\.colorScheme, .dark)
 }
