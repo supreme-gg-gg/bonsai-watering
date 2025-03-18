@@ -8,9 +8,6 @@
 import SwiftUI
 import AVFoundation
 
-import SwiftUI
-import AVFoundation
-
 struct PhotoView: View {
 	@StateObject private var viewModel = PhotoViewModel()
 	@State private var isShowingCamera = false
