@@ -1,8 +1,9 @@
 import asyncio
 import random
-import struct
 import sys
 import platform
+import subprocess
+from record_digital import MoistureSensor
 from bleak import BleakScanner, BleakClient
 from bleak.exc import BleakError
 
@@ -12,17 +13,14 @@ MOISTURE_CHAR_UUID = "12345678-1234-5678-1234-56789abcdef1"
 PHONE_APP_NAME = "BonsaiPeripheral"
 
 # Function to generate mock moisture data
-def generate_mock_moisture_data():
-    moisture_level = random.randint(0, 100)
+def get_moisture_data(sensor: MoistureSensor):
+    reading = sensor.get_reading()
+    # reading is either 1 or 0
+    if reading == 0:
+        moisture_level = random.randint(0, 20)
+    else:
+        moisture_level = random.randint(70, 100)
     return f"Moisture: {moisture_level}%".encode('utf-8')
-
-# Notification callback
-def notification_handler(sender, data):
-    print(f"Received notification from {sender}: {data}")
-    try:
-        print(f"Decoded: {data.decode('utf-8')}")
-    except:
-        print(f"Raw data: {data.hex()}")
 
 async def retry_connect(address, max_attempts=3, delay=2.0):
     """Attempt to connect with retries"""
@@ -39,146 +37,91 @@ async def retry_connect(address, max_attempts=3, delay=2.0):
             print(f"Connection error: {e}")
         except Exception as e:
             print(f"Unexpected error: {e}")
-        
-        # Wait before retrying
         await asyncio.sleep(delay)
-    
     return None
 
-async def scan_and_connect():
+async def forget_and_retry(address):
+    """Forgets the device and retries connection."""
+    print(f"Attempting to forget device {address}...")
+    try:
+        subprocess.run(["bluetoothctl", "remove", address], check=True, capture_output=True)
+        print("Device forgotten.")
+    except subprocess.CalledProcessError as e:
+        print(f"Failed to forget device: {e}")
+        return False
+
+    await asyncio.sleep(2.0) # wait before retry.
+    return True
+
+async def scan_and_connect(sensor: MoistureSensor):
     """Main function to scan for and connect to the BLE peripheral"""
     print(f"Starting BLE Central on {platform.system()} {platform.release()}")
     print(f"Looking for peripheral named '{PHONE_APP_NAME}'")
     print(f"Service UUID: {MOISTURE_SERVICE_UUID}")
     print(f"Characteristic UUID: {MOISTURE_CHAR_UUID}")
-    
+
     while True:
         try:
             print("\n--------- New Scan Cycle ---------")
-            # First scan with increased timeout
             devices = await BleakScanner.discover(timeout=10.0)
-            
             print(f"Found {len(devices)} devices")
-            
-            # Look for the phone app specifically
-            phone_device = None
-            for device in devices:
-                device_name = device.name or "Unknown"
-                if device_name == "Unknown" and device.address:
-                    print(f"Device {device.address} - Name: Unknown")
-                else:
-                    print(f"Device {device.address} - Name: {device_name}")
-                
-                # Check if this is our target device
-                if device_name and PHONE_APP_NAME in device_name:
-                    print(f"✅ Found target device: {device_name} ({device.address})")
-                    phone_device = device
-                    break
-            
-            # If we found the device, attempt to connect
+
+            phone_device = next((device for device in devices if device.name and PHONE_APP_NAME in device.name), None)
+
             if phone_device:
-                print(f"Attempting to connect to {phone_device.name}...")
+                print(f"✅ Found target device: {phone_device.name} ({phone_device.address})")
                 client = await retry_connect(phone_device.address)
-                
+
                 if client and client.is_connected:
                     try:
-                        # Allow time for services to be discovered
-                        print("Connected! Waiting for service discovery...")
+                        print("Connected! Discovering services...")
                         await asyncio.sleep(2.0)
-                        
-                        # Attempt to get all services
-                        print("Discovering services...")
+                        services = None
                         for retry in range(3):
                             try:
                                 services = await client.get_services()
                                 break
                             except Exception as e:
                                 print(f"Service discovery error (attempt {retry+1}/3): {e}")
-                                if retry < 2:
-                                    print("Retrying service discovery...")
-                                    await asyncio.sleep(1.0)
-                                else:
-                                    print("Failed all service discovery attempts")
-                                    services = None
-                        
-                        # Check if we got services
+                                await asyncio.sleep(1.0)
                         if not services:
-                            print("⚠️ No services object returned")
+                            print("⚠️ Failed all service discovery attempts.")
                             await client.disconnect()
+
+                            if await forget_and_retry(phone_device.address):
+                                continue # retry the whole loop after forgetting.
+
                             await asyncio.sleep(5.0)
                             continue
-                        
-                        # Convert services to a list for easier inspection
+
                         service_list = list(services)
-                        
-                        if not service_list:
-                            print("⚠️ No services found! Check the iOS app is properly advertising.")
-                            print("Disconnecting and retrying in 5 seconds...")
-                            await client.disconnect()
-                            await asyncio.sleep(5.0)
-                            continue
-                        
-                        # Debug all services and characteristics
                         print("\n--- DISCOVERED SERVICES AND CHARACTERISTICS ---")
                         for service in service_list:
                             print(f"Service: {service.uuid}")
                             for char in service.characteristics:
                                 props = ", ".join(char.properties)
-                                print(f"  Characteristic: {char.uuid}")
-                                print(f"    Properties: {props}")
-                                print(f"    Handle: {char.handle}")
+                                print(f"  Characteristic: {char.uuid}\n    Properties: {props}\n    Handle: {char.handle}")
                         print("---------------------------------------------\n")
-                        
-                        # Look for our service by UUID
-                        target_service = None
-                        for service in service_list:
-                            if service.uuid.lower() == MOISTURE_SERVICE_UUID.lower():
-                                target_service = service
-                                print(f"Found target service: {service.uuid}")
-                                break
-                        
+
+                        target_service = next((s for s in service_list if s.uuid.lower() == MOISTURE_SERVICE_UUID.lower()), None)
                         if not target_service:
                             print(f"⚠️ Target service ({MOISTURE_SERVICE_UUID}) not found!")
-                            # Try to find any primary services
-                            primary_services = [s for s in service_list if hasattr(s, 'primary') and s.primary]
-                            if primary_services:
-                                print("Available primary services:")
-                                for s in primary_services:
-                                    print(f" - {s.uuid}")
                             await client.disconnect()
+                            if await forget_and_retry(phone_device.address):
+                                continue
                             await asyncio.sleep(5.0)
                             continue
-                        
-                        # Look for our characteristic
-                        target_char = None
-                        for char in target_service.characteristics:
-                            if char.uuid.lower() == MOISTURE_CHAR_UUID.lower():
-                                target_char = char
-                                print(f"Found target characteristic: {char.uuid}")
-                                print(f"Properties: {', '.join(char.properties)}")
-                                break
-                        
+
+                        target_char = next((char for char in target_service.characteristics if char.uuid.lower() == MOISTURE_CHAR_UUID.lower()), None)
                         if not target_char:
                             print(f"⚠️ Target characteristic ({MOISTURE_CHAR_UUID}) not found!")
                             await client.disconnect()
+                            if await forget_and_retry(phone_device.address):
+                                continue
                             await asyncio.sleep(5.0)
                             continue
-                        
-                        # If we got here, we can interact with the characteristic
-                        print("✅ Service and characteristic found!")
-                        
-                        # Set up notifications if supported by the characteristic
-                        """
-                        if "notify" in target_char.properties:
-                            print("Setting up notifications...")
-                            try:
-                                await client.start_notify(target_char.uuid, notification_handler)
-                                print("Notifications enabled")
-                            except Exception as e:
-                                print(f"Failed to enable notifications: {e}")
-                        """
 
-                        # Try reading the characteristic if supported
+                        print("✅ Service and characteristic found!")
                         if "read" in target_char.properties:
                             try:
                                 read_value = await client.read_gatt_char(target_char.uuid)
@@ -189,21 +132,15 @@ async def scan_and_connect():
                                     print(f"Raw hex: {read_value.hex()}")
                             except Exception as e:
                                 print(f"Failed to read characteristic: {e}")
-                        
-                        # Main communication loop
+
                         print("\nStarting communication loop...")
-                        for i in range(10):  # Send 10 messages and then reconnect
+                        for i in range(10):
                             try:
                                 if client.is_connected:
-                                    # Generate and send mock data
-                                    data = generate_mock_moisture_data()
+                                    data = get_moisture_data(sensor)
                                     print(f"Sending: {data.decode('utf-8')}")
-                                    
-                                    # Write the data
                                     await client.write_gatt_char(target_char.uuid, data)
                                     print("✅ Write successful")
-                                    
-                                    # Wait before sending again
                                     await asyncio.sleep(5.0)
                                 else:
                                     print("Connection lost")
@@ -211,28 +148,23 @@ async def scan_and_connect():
                             except Exception as e:
                                 print(f"Error in communication loop: {e}")
                                 break
-                        
-                        # Clean disconnect
+
                         print("Communication complete, disconnecting...")
                         await client.disconnect()
                         print("Disconnected cleanly")
-                        
+
                     except Exception as e:
                         print(f"Error during device interaction: {e}")
                         import traceback
                         traceback.print_exc()
                         if client.is_connected:
                             await client.disconnect()
-                
                 else:
                     print("Could not establish connection to device")
-            
             else:
                 print(f"Device '{PHONE_APP_NAME}' not found, will scan again")
-            
-            # Wait before next scan cycle
             await asyncio.sleep(5.0)
-                
+
         except KeyboardInterrupt:
             print("\nUser interrupted, exiting...")
             return
@@ -240,16 +172,14 @@ async def scan_and_connect():
             print(f"Unexpected error in main loop: {e}")
             import traceback
             traceback.print_exc()
-            await asyncio.sleep(5.0)
+    await asyncio.sleep(5.0)
 
 def main():
+    sensor = MoistureSensor(21)
     try:
-        # Set event loop policy for Windows if needed
         if platform.system() == "Windows":
             asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-        
-        # Run the main async function
-        asyncio.run(scan_and_connect())
+        asyncio.run(scan_and_connect(sensor))
     except KeyboardInterrupt:
         print("\nExiting program...")
     finally:
