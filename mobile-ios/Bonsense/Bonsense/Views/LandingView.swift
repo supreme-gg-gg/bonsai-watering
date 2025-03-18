@@ -17,6 +17,7 @@ struct LandingView: View {
 					.ignoresSafeArea()
 				
 				VStack(spacing: 40) {
+					Spacer()
 					// Title with leaf icon
 					VStack(spacing: 15) {
 						Text("Bonsai")

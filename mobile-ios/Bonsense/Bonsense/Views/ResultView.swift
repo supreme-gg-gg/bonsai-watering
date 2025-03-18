@@ -10,6 +10,7 @@ import SwiftUI
 struct ResultView: View {
 	@ObservedObject var viewModel: ResultViewModel
 	@Environment(\.presentationMode) var presentationMode
+	@EnvironmentObject var bluetoothViewModel: BluetoothViewModel
 	
 	var body: some View {
 		ZStack {
@@ -100,9 +101,8 @@ struct ResultView: View {
 				
 				// Back to home button
 				Button(action: {
-					// This will pop back to the root view
-					// You might need to adjust navigation based on your app flow
-					presentationMode.wrappedValue.dismiss()
+					bluetoothViewModel.disconnect() // Disconnect Bluetooth
+					presentationMode.wrappedValue.dismiss() // Go back to Home
 				}) {
 					HStack {
 						Image(systemName: "house.fill")

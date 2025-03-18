@@ -105,7 +105,7 @@ struct SensorReadingView: View {
 				
 				// Navigation link to Results
 				NavigationLink(
-					destination: ResultView(viewModel: ResultViewModel(waterLevel: bluetoothViewModel.waterLevel ?? WaterLevel(percentage: 0))),
+					destination: ResultView(viewModel: ResultViewModel(waterLevel: bluetoothViewModel.waterLevel ?? WaterLevel(percentage: 0))).environmentObject(bluetoothViewModel),
 					isActive: $bluetoothViewModel.navigateToResult
 				) {
 					EmptyView()
