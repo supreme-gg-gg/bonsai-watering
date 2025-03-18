@@ -18,6 +18,9 @@
 		4B1CCDEE2D87D24600B8FD40 /* PhotoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B1CCDED2D87D24600B8FD40 /* PhotoView.swift */; };
 		4B1CCDF02D87D24C00B8FD40 /* ResultView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B1CCDEF2D87D24C00B8FD40 /* ResultView.swift */; };
 		4B1CCDF32D87D4B900B8FD40 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B1CCDF22D87D4B900B8FD40 /* Theme.swift */; };
+		4BC93C142D88F31C0055018E /* BluetoothViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BC93C132D88F31C0055018E /* BluetoothViewModel.swift */; };
+		4BC93C172D88F34F0055018E /* BluetoothService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BC93C162D88F34F0055018E /* BluetoothService.swift */; };
+		4BC93C192D88F3B10055018E /* SensorReadingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BC93C182D88F3B10055018E /* SensorReadingView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -33,6 +36,9 @@
 		4B1CCDED2D87D24600B8FD40 /* PhotoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoView.swift; sourceTree = "<group>"; };
 		4B1CCDEF2D87D24C00B8FD40 /* ResultView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResultView.swift; sourceTree = "<group>"; };
 		4B1CCDF22D87D4B900B8FD40 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
+		4BC93C132D88F31C0055018E /* BluetoothViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BluetoothViewModel.swift; sourceTree = "<group>"; };
+		4BC93C162D88F34F0055018E /* BluetoothService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BluetoothService.swift; sourceTree = "<group>"; };
+		4BC93C182D88F3B10055018E /* SensorReadingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SensorReadingView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -65,6 +71,7 @@
 		4B1CCDD12D87D04E00B8FD40 /* Bonsense */ = {
 			isa = PBXGroup;
 			children = (
+				4BC93C152D88F3370055018E /* Services */,
 				4B1CCDF12D87D4A500B8FD40 /* Utilities */,
 				4B1CCDD22D87D04E00B8FD40 /* BonsenseApp.swift */,
 				4B1CCDEA2D87D23300B8FD40 /* Views */,
@@ -96,6 +103,7 @@
 			isa = PBXGroup;
 			children = (
 				4B1CCDE42D87D21B00B8FD40 /* LandingViewModel.swift */,
+				4BC93C132D88F31C0055018E /* BluetoothViewModel.swift */,
 				4B1CCDE62D87D22400B8FD40 /* PhotoViewModel.swift */,
 				4B1CCDE82D87D22F00B8FD40 /* ResultViewModel.swift */,
 			);
@@ -107,6 +115,7 @@
 			children = (
 				4B1CCDEB2D87D23E00B8FD40 /* LandingView.swift */,
 				4B1CCDED2D87D24600B8FD40 /* PhotoView.swift */,
+				4BC93C182D88F3B10055018E /* SensorReadingView.swift */,
 				4B1CCDEF2D87D24C00B8FD40 /* ResultView.swift */,
 			);
 			path = Views;
@@ -118,6 +127,14 @@
 				4B1CCDF22D87D4B900B8FD40 /* Theme.swift */,
 			);
 			path = Utilities;
+			sourceTree = "<group>";
+		};
+		4BC93C152D88F3370055018E /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				4BC93C162D88F34F0055018E /* BluetoothService.swift */,
+			);
+			path = Services;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -190,13 +207,16 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4BC93C172D88F34F0055018E /* BluetoothService.swift in Sources */,
 				4B1CCDF32D87D4B900B8FD40 /* Theme.swift in Sources */,
 				4B1CCDE22D87D20800B8FD40 /* MoistureModel.swift in Sources */,
 				4B1CCDE92D87D22F00B8FD40 /* ResultViewModel.swift in Sources */,
+				4BC93C142D88F31C0055018E /* BluetoothViewModel.swift in Sources */,
 				4B1CCDF02D87D24C00B8FD40 /* ResultView.swift in Sources */,
 				4B1CCDEC2D87D23E00B8FD40 /* LandingView.swift in Sources */,
 				4B1CCDE52D87D21B00B8FD40 /* LandingViewModel.swift in Sources */,
 				4B1CCDD32D87D04E00B8FD40 /* BonsenseApp.swift in Sources */,
+				4BC93C192D88F3B10055018E /* SensorReadingView.swift in Sources */,
 				4B1CCDE72D87D22400B8FD40 /* PhotoViewModel.swift in Sources */,
 				4B1CCDEE2D87D24600B8FD40 /* PhotoView.swift in Sources */,
 			);
@@ -335,6 +355,8 @@
 				DEVELOPMENT_TEAM = D3AR98CJZJ;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "Connect to BLE central";
+				INFOPLIST_KEY_NSBluetoothPeripheralUsageDescription = "Connec to raspi";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Take photo of your bonsai";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -365,6 +387,8 @@
 				DEVELOPMENT_TEAM = D3AR98CJZJ;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "Connect to BLE central";
+				INFOPLIST_KEY_NSBluetoothPeripheralUsageDescription = "Connec to raspi";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Take photo of your bonsai";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;

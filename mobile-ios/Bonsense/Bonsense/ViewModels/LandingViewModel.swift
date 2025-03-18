@@ -10,10 +10,12 @@ import SwiftUI
 
 class LandingViewModel: ObservableObject {
 	@Published var navigateToPhotoView = false
-	
+	@Published var navigateToSensorView = false
+	@Published var bluetoothViewModel = BluetoothViewModel()
+		
 	func connectToSensor() {
-		// This will be implemented in the future
-		print("Connect to sensor button pressed - functionality to be implemented")
+		bluetoothViewModel.startAdvertising()
+		navigateToSensorView = true
 	}
 	
 	func navigateToCamera() {

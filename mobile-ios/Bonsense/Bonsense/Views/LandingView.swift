@@ -89,6 +89,13 @@ struct LandingView: View {
 							}
 							.padding(.horizontal)
 						}
+						
+						NavigationLink(
+							destination: SensorReadingView(bluetoothViewModel: viewModel.bluetoothViewModel),
+							isActive: $viewModel.navigateToSensorView
+						) {
+							EmptyView()
+						}
 					}
 					
 					// Decorative elements
