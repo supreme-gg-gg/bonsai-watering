@@ -1,0 +1,3 @@
+bleak
+RPi.GPIO
+picamera2

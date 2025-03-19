@@ -6,11 +6,13 @@ Praxis II -- Bonsai soil moisture monitoring and watering system
 
 `firmware` contains code for Raspberry Pi. Require: `RPi.GPIO, PiCamera2, bleak`
 
+`analysis` contains preliminary data analysis (e.g. feature selection) and preprocessing code. Require: `pandas, numpy, scipy, matplotlib, seaborn, scikit-learn, opencv-python`
+
 `mobile-ios/Bonsense` is the official iOS Swift/SwiftUI application. Dependencies: `CoreBluetooth, AVFoundation`
 
 ## TODO
 
-- [ X ] Fix BLE connection and characteristic read/write with Raspberry Pi Bleak client
+- [ ] Fix BLE connection and characteristic read/write with Raspberry Pi Bleak client
 
 - [ ] Switch roles of central and peripheral for more robust BLE connection
 
@@ -22,6 +24,8 @@ Praxis II -- Bonsai soil moisture monitoring and watering system
 
 - [ ] Smartphone photo model training + deployment with CoreML and to Raspberry Pi with the PiCam
 
+- [ ] Continued investigation of gray level vs direct CNN vs smartphone spectroscopy methods
+
 ## Optional
 
 1. Test NIR spectroscopy (need NIR source and diffraction spectroscope)
@@ -31,3 +35,5 @@ Praxis II -- Bonsai soil moisture monitoring and watering system
 3. Fix the camera view so that the camera is displayed in the box, not a popup where you take a photo
 
 4. Implement AR feature to direclty recognize and display a moisture level / alert tag on top of the bonsai for maximum convenience (UX!!)
+
+5. Build Android client -- either in Java or Kotlin or Flutter or React Native

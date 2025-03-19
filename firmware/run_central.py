@@ -28,7 +28,7 @@ async def retry_connect(address, max_attempts=3, delay=2.0):
         try:
             print(f"Connection attempt {attempt+1}/{max_attempts}...")
             client = BleakClient(address)
-            await client.connect(timeout=15.0)
+            await client.connect(timeout=15.0, force_pairing=False)
             if client.is_connected:
                 print("✅ Connected successfully!")
                 return client
