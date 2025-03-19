@@ -51,6 +51,10 @@ def eliminate_gloss(image, threshold=10):
 def estimate_soil_moisture(gray_level, GL_0=157, GL_s=75, u_s=50):
     """
     Estimate soil water content (SWC) from gray level using the model equation.
+    GL_0: Gray level at saturation (100% SWC)
+    GL_s: Gray level at dry soil (0% SWC)
+    u_s: Maximum SWC value (saturated soil)
+    These values are all specific to the calibration process.
     """
     if gray_level < GL_s or gray_level > GL_0:
         raise ValueError("Gray level out of expected range.")
