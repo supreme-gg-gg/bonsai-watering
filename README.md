@@ -12,6 +12,8 @@ Praxis II -- Bonsai soil moisture monitoring and watering system
 
 ## TODO
 
+- [ ] Train model on https://github.com/akabircs/Soil-Moisture-Imaging-Data
+
 - [ ] Fix BLE connection and characteristic read/write with Raspberry Pi Bleak client
 
 - [ ] Switch roles of central and peripheral for more robust BLE connection
