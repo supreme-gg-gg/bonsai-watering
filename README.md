@@ -4,38 +4,28 @@ Praxis II -- Bonsai soil moisture monitoring and watering system
 
 ## Development Notes
 
-`firmware` contains code for Raspberry Pi. Require: `RPi.GPIO, PiCamera2, bleak`
+- `firmware` contains code for Raspberry Pi. Require: `RPi.GPIO, PiCamera2, bleak`
 
-`analysis` contains preliminary data analysis (e.g. feature selection) and preprocessing code. Require: `pandas, numpy, scipy, matplotlib, seaborn, scikit-learn, opencv-python`
+- `analysis` contains preliminary data analysis (e.g. feature selection) and preprocessing code. Require: `pandas, numpy, scipy, matplotlib, seaborn, scikit-learn, opencv-python`
 
-`mobile-ios/Bonsense` is the official iOS Swift/SwiftUI application. Dependencies: `CoreBluetooth, AVFoundation`
+- `mobile-ios/Bonsense` is the official iOS Swift/SwiftUI application. Dependencies: `CoreBluetooth, AVFoundation`
+
+- `model` contains the machine learning model training code. Require: `pandas, numpy, matplotlib, scikit-learn, scikit-image, torch, torchvision`
 
 ## TODO
-
-- [ ] Train model on https://github.com/akabircs/Soil-Moisture-Imaging-Data
-
-- [ ] Fix BLE connection and characteristic read/write with Raspberry Pi Bleak client
 
 - [ ] Switch roles of central and peripheral for more robust BLE connection
 
 - [ ] Setup picamera, perform testing of the photo approach and spectorsocpy approach
 
-- [ ] Finalize data interface, implement SwiftData persistant storage and AnalyticsView
-
-- [ ] Use ML and stat methods to calibrate the moisture sensor (once we have ADC)
-
 - [ ] Smartphone photo model training + deployment with CoreML and to Raspberry Pi with the PiCam
 
 - [ ] Continued investigation of gray level vs direct CNN vs smartphone spectroscopy methods
 
-## Optional
+## References
 
-1. Test NIR spectroscopy (need NIR source and diffraction spectroscope)
+1. [Machine Learning Techniques for Estimating Soil Moisture from Smartphone Captured Images](https://doi.org/10.3390/agriculture13030574)
 
-2. Enhance the overall UI/UX of the app, enhance dark mode color scheme and style
+2. [Estimating soil water content from surface digital image gray level measurements under visible spectrum](https://cdnsciencepub.com/doi/10.4141/cjss10054)
 
-3. Fix the camera view so that the camera is displayed in the box, not a popup where you take a photo
-
-4. Implement AR feature to direclty recognize and display a moisture level / alert tag on top of the bonsai for maximum convenience (UX!!)
-
-5. Build Android client -- either in Java or Kotlin or Flutter or React Native
+3. [Near-infrared spectroscopy for soil water determination in small soil volumes](https://cdnsciencepub.com/doi/10.4141/S03-090)
