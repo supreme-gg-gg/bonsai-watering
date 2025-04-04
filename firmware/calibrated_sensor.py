@@ -1,5 +1,6 @@
 import spidev
 import time
+import numpy as np
 
 class CalibratedMoistureSensor:
     def __init__(self, channel=0, calibration_points=None):
@@ -17,10 +18,15 @@ class CalibratedMoistureSensor:
         self.channel = channel
         
         # Default calibration based on provided measurements
-        # From the provided data:
-        # ~365 raw value (35% sensor reading) → 7.75% water content
-        # ~620 raw value (60% sensor reading) → 20% water content
-        self.calibration_points = calibration_points or [(220, 3), (365, 7.5), (680, 15.0)]
+        self.calibration_points = calibration_points or [(0,0), (220, 3), (365, 7.5), (680, 15.0)]
+        
+        # Fit a line through calibration points
+        x = np.array([point[0] for point in self.calibration_points])
+        y = np.array([point[1] for point in self.calibration_points])
+        
+        # Linear regression: y = mx + b
+        self.slope, self.intercept = np.polyfit(x, y, 1)
+        print(f"Calibration line: y = {self.slope:.6f}x + {self.intercept:.6f}")
     
     def read_raw(self):
         """Read raw value from the MCP3008 chip."""
@@ -42,27 +48,13 @@ class CalibratedMoistureSensor:
     def calibrate(self, raw_value):
         """Convert raw sensor value to calibrated water content percentage.
         
-        Uses linear interpolation between calibration points.
+        Uses the fitted line equation: water_content = slope * raw_value + intercept
         """
-        # Sort calibration points by raw value
-        points = sorted(self.calibration_points)
+        # Calculate water content using the fitted line
+        water_content = self.slope * raw_value + self.intercept
         
-        # Handle values below lowest calibration point
-        if raw_value <= points[0][0]:
-            return points[0][1]
-        
-        # Handle values above highest calibration point
-        if raw_value >= points[-1][0]:
-            return points[-1][1]
-        
-        # Linear interpolation between calibration points
-        for i in range(len(points) - 1):
-            if points[i][0] <= raw_value <= points[i+1][0]:
-                x0, y0 = points[i]
-                x1, y1 = points[i+1]
-                
-                # Linear interpolation formula: y = y0 + (y1-y0)*(x-x0)/(x1-x0)
-                return y0 + (y1 - y0) * (raw_value - x0) / (x1 - x0)
+        # Ensure output is non-negative (sensors can't report negative water content)
+        return max(0, water_content)
     
     def close(self):
         """Close SPI connection."""
