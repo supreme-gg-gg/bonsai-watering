@@ -38,7 +38,12 @@ else:
 moisture_sensor = None
 
 def read_request(characteristic: BlessGATTCharacteristic, **kwargs) -> bytearray:
-    """Handle read requests from clients"""
+    """
+    Handle read requests from clients
+    The client must send a read request every time it wants to read the moisture value.
+    NOTE: Alternatively, we repeatedly read automatically, set the characterstic.value
+    every few seconds, and notify the client by server.update_value(my_service_uuid, my_char_uuid)
+    """
     logger.debug(f"Reading {characteristic.value}")
     
     # If this is a read from the moisture characteristic, get fresh data
@@ -57,7 +62,10 @@ def read_request(characteristic: BlessGATTCharacteristic, **kwargs) -> bytearray
 
 
 def write_request(characteristic: BlessGATTCharacteristic, value: Any, **kwargs):
-    """Handle write requests from clients"""
+    """
+    Handle write requests from clients
+    NOTE: Obviously the client cannot write to the sensor lol
+    """
     characteristic.value = value
     logger.debug(f"Char value set to {characteristic.value}")
     
@@ -67,8 +75,14 @@ def write_request(characteristic: BlessGATTCharacteristic, value: Any, **kwargs)
         trigger.set()
 
 
-async def update_moisture_readings(server, service_uuid, char_uuid, interval=5.0):
-    """Periodically update moisture readings and notify clients"""
+async def update_moisture_readings(server: BlessServer,
+                                   service_uuid: str,
+                                   characteristic: BlessGATTCharacteristic,
+                                   char_uuid: str,
+                                   interval: int =5.0):
+    """
+    Periodically update moisture readings and notify clients
+    """
     try:
         while True:
             if moisture_sensor:
@@ -81,7 +95,8 @@ async def update_moisture_readings(server, service_uuid, char_uuid, interval=5.0
                     logger.info(f"Current moisture: {moisture_str}%")
                     
                     # Update characteristic value
-                    server.update_value(service_uuid, char_uuid, moisture_str.encode())
+                    characteristic.value = bytearray(moisture_str.encode())
+                    server.update_value(service_uuid, char_uuid)
                     
                 except Exception as e:
                     logger.error(f"Error updating moisture value: {e}")
@@ -126,7 +141,7 @@ async def run(loop):
     await server.add_new_characteristic(
         MOISTURE_SERVICE_UUID,
         MOISTURE_CHAR_UUID,
-        char_flags, 
+        char_flags,
         bytearray("0.00".encode()),  # Initial value
         permissions
     )
@@ -135,14 +150,9 @@ async def run(loop):
     
     # Start the server
     await server.start()
-    logger.info(f"BLE Server '{PHONE_APP_NAME}' started and advertising")
+    logger.info(f"BLE Server '{SERVER_NAME}' started and advertising")
     logger.info(f"Service UUID: {MOISTURE_SERVICE_UUID}")
     logger.info(f"Characteristic UUID: {MOISTURE_CHAR_UUID}")
-    
-    # Create task for periodic moisture updates
-    update_task = loop.create_task(
-        update_moisture_readings(server, MOISTURE_SERVICE_UUID, MOISTURE_CHAR_UUID)
-    )
     
     try:
         # Run until triggered to stop
@@ -158,13 +168,6 @@ async def run(loop):
     except KeyboardInterrupt:
         logger.info("Keyboard interrupt received")
     finally:
-        # Clean up
-        update_task.cancel()
-        try:
-            await update_task
-        except asyncio.CancelledError:
-            pass
-        
         if moisture_sensor:
             try:
                 moisture_sensor.close()
