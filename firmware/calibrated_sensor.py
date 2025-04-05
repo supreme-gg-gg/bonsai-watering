@@ -5,6 +5,7 @@ import numpy as np
 class CalibratedMoistureSensor:
     def __init__(self, channel=0, calibration_points=None):
         """Initialize the calibrated moisture sensor.
+        NOTE: We need to manually determine the saturation percentage (here is 15%)
         
         Args:
             channel: The MCP3008 channel for the sensor (default: 0)
@@ -44,6 +45,18 @@ class CalibratedMoistureSensor:
         """Read and return calibrated water content percentage."""
         raw_value = self.read_raw()
         return self.calibrate(raw_value)
+
+    def read_calibrated_percent(self) -> int:
+        """
+        Same as read_calibrated but returns the precentage of the max value
+        instead of the calibrated value.
+        This is useful for displaying the value as a percentage.
+        The max value is assumed to be 100% water content.
+        """
+        raw_value = self.read_raw()
+        abs_percent = self.calibrate(raw_value)
+        rel_percent = abs_percent / 15.0 # 15% is the saturation percentage
+        return int(round(rel_percent * 100))
     
     def calibrate(self, raw_value):
         """Convert raw sensor value to calibrated water content percentage.

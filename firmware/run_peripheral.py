@@ -51,10 +51,10 @@ def read_request(characteristic: BlessGATTCharacteristic, **kwargs) -> bytearray
         try:
             # Get current moisture reading
             if moisture_sensor:
-                moisture_value = moisture_sensor.read_calibrated()
+                moisture_value = moisture_sensor.read_calibrated_percent()
                 # Convert float to string and then to bytearray
-                characteristic.value = bytearray(f"{moisture_value:.2f}".encode())
-                logger.info(f"Sending moisture value: {moisture_value:.2f}%")
+                characteristic.value = bytearray(f"{moisture_value}".encode())
+                logger.info(f"Sending moisture value: {moisture_value}%")
         except Exception as e:
             logger.error(f"Error reading moisture sensor: {e}")
     

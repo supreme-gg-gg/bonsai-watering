@@ -7,8 +7,8 @@
 
 import SwiftUI
 
-struct SensorReadingView: View {
-	@ObservedObject var bluetoothViewModel: BluetoothViewModel
+struct SensorPairingView: View {
+	@ObservedObject var bluetoothViewModel: BLECentralViewModel
 	@Environment(\.presentationMode) var presentationMode
 	
 	var body: some View {
@@ -21,7 +21,7 @@ struct SensorReadingView: View {
 					.font(BonsaiTheme.titleFont)
 					.foregroundColor(BonsaiTheme.primaryGreen)
 				
-				if bluetoothViewModel.isAdvertising {
+				if bluetoothViewModel.isScanning {
 					// Display connecting animation
 					VStack(spacing: 20) {
 						ZStack {
@@ -129,18 +129,18 @@ struct SensorReadingView: View {
 }
 
 #Preview("Connecting") {
-	let viewModel = BluetoothViewModel()
-	viewModel.isAdvertising = true
+	let viewModel = BLECentralViewModel()
+	viewModel.isScanning = true
 	viewModel.message = "Searching for Raspberry Pi..."
 	
-	return SensorReadingView(bluetoothViewModel: viewModel)
+	return SensorPairingView(bluetoothViewModel: viewModel)
 }
 
 #Preview("Connected") {
-	let viewModel = BluetoothViewModel()
-	viewModel.isAdvertising = true
+	let viewModel = BLECentralViewModel()
+	viewModel.isScanning = true
 	viewModel.isConnected = true
 	viewModel.message = "Connected to Bonsai Sensor"
 	
-	return SensorReadingView(bluetoothViewModel: viewModel)
+	return SensorPairingView(bluetoothViewModel: viewModel)
 }
