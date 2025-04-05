@@ -1,110 +1,86 @@
-import time
-from bluepy.btle import Peripheral, UUID, DefaultDelegate
-import struct
-import random
+"""
+Example for a BLE 4.0 Server
+"""
+import sys
+import logging
+import asyncio
+import threading
 
-# Define UUIDs for our service and characteristic
-# Using standard base UUID format with our custom values
-SENSOR_SERVICE_UUID = UUID("12345678-1234-5678-1234-56789abcdef0")
-MOISTURE_CHAR_UUID = UUID("12345678-1234-5678-1234-56789abcdef1")
+from typing import Any, Union
 
-class MoistureDataDelegate(DefaultDelegate):
-    def __init__(self):
-        DefaultDelegate.__init__(self)
-        
-    def handleNotification(self, cHandle, data):
-        print(f"Notification from handle {cHandle}: {data}")
+from bless import (  # type: ignore
+    BlessServer,
+    BlessGATTCharacteristic,
+    GATTCharacteristicProperties,
+    GATTAttributePermissions,
+)
 
-class BonsaiPeripheral(Peripheral):
-    def __init__(self):
-        Peripheral.__init__(self)
-        
-        # Set up the peripheral
-        self.setDelegate(MoistureDataDelegate())
-        print("Setting up BLE peripheral...")
-        
-        try:
-            # Add service
-            self.service = self.addService(SENSOR_SERVICE_UUID)
-            
-            # Add MoistureData characteristic
-            self.moisture_data_char = self.service.addCharacteristic(
-                MOISTURE_CHAR_UUID,
-                ["read", "notify"]  # Properties
-            )
-            self.moisture_data_char.addDescriptor(
-                UUID("2901"), "Moisture Data"
-            )
-            
-            # Start advertising
-            self.advertise()
-            
-        except Exception as e:
-            print(f"Error setting up peripheral: {e}")
-            self.disconnect()
-            raise e
-    
-    def advertise(self):
-        """Start advertising the peripheral"""
-        print("Starting advertisement...")
-        self.advertiseService(SENSOR_SERVICE_UUID)
-        
-    def update_moisture_data(self, moisture_value):
-        """Update the MoistureData characteristic with new value"""
-        try:
-            # Convert value to bytes
-            data = str(moisture_value).encode()
-            
-            # Write the data to the characteristic
-            self.moisture_data_char.write(data)
-            
-            # Notify connected clients
-            if self.moisture_data_char.getHandle():
-                self.writeCharacteristic(
-                    self.moisture_data_char.getHandle(), 
-                    data,
-                    withResponse=True
-                )
-            
-            print(f"Moisture data sent: {moisture_value}%")
-            return True
-            
-        except Exception as e:
-            print(f"Error updating data: {e}")
-            return False
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(name=__name__)
 
-def generate_moisture_data():
-    """Generate random moisture value between 0-100"""
-    return random.randint(0, 100)
+# NOTE: Some systems require different synchronization methods.
+trigger: Union[asyncio.Event, threading.Event]
+if sys.platform in ["darwin", "win32"]:
+    trigger = threading.Event()
+else:
+    trigger = asyncio.Event()
 
-def main():
-    peripheral = None
-    
-    try:
-        # Create and start the peripheral
-        peripheral = BonsaiPeripheral()
-        print("BLE Peripheral started")
-        print("Waiting for connections...")
-        
-        # Main loop to update data
-        while True:
-            # Generate new moisture data
-            moisture = generate_moisture_data()
-            
-            # Update the characteristic
-            peripheral.update_moisture_data(moisture)
-            
-            # Wait before sending the next update
-            time.sleep(5)
-                
-    except KeyboardInterrupt:
-        print("\nStopping BLE peripheral...")
-    except Exception as e:
-        print(f"Error: {e}")
-    finally:
-        if peripheral:
-            peripheral.disconnect()
-            print("BLE peripheral stopped")
 
-if __name__ == "__main__":
-    main()
+def read_request(characteristic: BlessGATTCharacteristic, **kwargs) -> bytearray:
+    logger.debug(f"Reading {characteristic.value}")
+    return characteristic.value
+
+
+def write_request(characteristic: BlessGATTCharacteristic, value: Any, **kwargs):
+    characteristic.value = value
+    logger.debug(f"Char value set to {characteristic.value}")
+    if characteristic.value == b"\x0f":
+        logger.debug("NICE")
+        trigger.set()
+
+# SENSOR_SERVICE_UUID = UUID("12345678-1234-5678-1234-56789abcdef0")
+# MOISTURE_CHAR_UUID = UUID("12345678-1234-5678-1234-56789abcdef1")
+
+async def run(loop):
+    trigger.clear()
+    # Instantiate the server
+    my_service_name = "Test Service"
+    server = BlessServer(name=my_service_name, loop=loop)
+    server.read_request_func = read_request
+    server.write_request_func = write_request
+
+    # Add Service
+    my_service_uuid = "A07498CA-AD5B-474E-940D-16F1FBE7E8CD"
+    await server.add_new_service(my_service_uuid)
+
+    # Add a Characteristic to the service
+    my_char_uuid = "51FF12BB-3ED8-46E5-B4F9-D64E2FEC021B"
+    char_flags = (
+        GATTCharacteristicProperties.read
+        | GATTCharacteristicProperties.write
+        | GATTCharacteristicProperties.indicate
+    )
+    permissions = GATTAttributePermissions.readable | GATTAttributePermissions.writeable
+    await server.add_new_characteristic(
+        my_service_uuid, my_char_uuid, char_flags, None, permissions
+    )
+
+    logger.debug(server.get_characteristic(my_char_uuid))
+    await server.start()
+    logger.debug("Advertising")
+    logger.info(f"Write '0xF' to the advertised characteristic: {my_char_uuid}")
+    if trigger.__module__ == "threading":
+        trigger.wait()
+    else:
+        await trigger.wait()
+
+    await asyncio.sleep(2)
+    logger.debug("Updating")
+    server.get_characteristic(my_char_uuid)
+    server.update_value(my_service_uuid, "51FF12BB-3ED8-46E5-B4F9-D64E2FEC021B")
+    await asyncio.sleep(5)
+    await server.stop()
+
+
+loop = asyncio.get_event_loop()
+loop.run_until_complete(run(loop))
