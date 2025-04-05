@@ -157,13 +157,15 @@ async def run(loop):
     try:
         # Run until triggered to stop
         if trigger.__module__ == "threading":
-            # Wait for trigger in a non-blocking way
-            while not trigger.is_set():
-                await asyncio.sleep(1)
+            trigger.wait()
         else:
             await trigger.wait()
-        
-        logger.info("Shutdown trigger received")
+    
+        await asyncio.sleep(2)
+        logger.info("Updating...")
+        server.get_characteristic(MOISTURE_CHAR_UUID)
+        server.update_value(MOISTURE_SERVICE_UUID, MOISTURE_CHAR_UUID)
+        await asyncio.sleep(2)
         
     except KeyboardInterrupt:
         logger.info("Keyboard interrupt received")
