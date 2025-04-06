@@ -28,11 +28,11 @@ struct WaterLevel {
 	var message: String {
 		switch band {
 		case .low:
-			return "Your bonsai is quite dry!"
+			return "Your bonsai soil is dry. Time for a drink!"
 		case .humid:
-			return "Your bonsai has ideal moisture."
+			return "Soil moisture is optimal. Your bonsai looks happy!"
 		case .wet:
-			return "Your bonsai is well watered."
+			return "Soil is quite wet. Ensure good drainage."
 		}
 	}
 	
