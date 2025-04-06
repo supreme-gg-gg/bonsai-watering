@@ -1,5 +1,5 @@
 //
-//  BLECentralService.swift
+//  BLECentralManager.swift
 //  Bonsense
 //
 //  Created by Jet Chiang on 2025-04-05.
@@ -7,474 +7,392 @@
 
 import Foundation
 import CoreBluetooth
-class BLECentralManager: NSObject, CBCentralManagerDelegate, CBPeripheralDelegate {
+
+// MARK: - Delegate Protocol
+protocol BLECentralManagerDelegate: AnyObject {
+	func bleManagerDidUpdateState(_ state: CBManagerState)
+	func bleManagerDidDiscoverPeripherals(_ peripherals: [CBPeripheral]) // Primarily for UI listing
+	func bleManagerDidConnect(to peripheral: CBPeripheral)
+	func bleManagerIsReadyToRead(from peripheral: CBPeripheral) // Indicates service/characteristic discovery is complete
+	func bleManager(didFailToConnect peripheral: CBPeripheral, error: Error?)
+	func bleManager(didDisconnect peripheral: CBPeripheral, error: Error?)
+	func bleManager(didReceiveData data: Data?, for characteristicUUID: CBUUID, error: Error?)
+}
+
+// MARK: - BLECentralManager Class
+class BLECentralManager: NSObject {
 
 	// MARK: - Properties
-
 	private var centralManager: CBCentralManager!
-	private var connectedPeripheral: CBPeripheral? // Renamed for clarity
-	private var discoveredPeripherals: [CBPeripheral] = [] // To collect peripherals during scan
+	private var connectedPeripheral: CBPeripheral?
+	private var discoveredPeripherals: [CBPeripheral] = [] // Store all discovered peripherals during a scan session
+	private var targetPeripheral: CBPeripheral? // The specific peripheral we intend to connect to or are connected to
 
-	// Service and characteristic UUIDs
-	private let moistureServiceUUID = CBUUID(string: "12345678-1234-5678-1234-56789abcdef0")
-	private let moistureCharUUID = CBUUID(string: "12345678-1234-5678-1234-56789abcdef1")
+	// Service and characteristic UUIDs - Ensure these are correct
+	let moistureServiceUUID = CBUUID(string: "12345678-1234-5678-1234-56789abcdef0")
+	let moistureCharUUID = CBUUID(string: "12345678-1234-5678-1234-56789abcdef1")
 
 	// Device name to search for
-	let serverNames = ["raspi", "BonsaiPeripheral"]
+	let serverName = "BonsaiPeripheral"
 
 	// State Tracking
 	private var scanTimer: Timer?
-	private var scanRequested = false
-	private var isConnecting = false // Flag to avoid duplicate connection attempts
+	private var isConnecting = false
+	private var scanTimeout: TimeInterval = 10.0 // Store timeout duration
 
-	// Completion Handlers
-	private var discoveryCompletion: (([CBPeripheral]) -> Void)?
-	private var connectionCompletion: ((Bool, Error?) -> Void)? // Optional: For reporting connection success/failure
-	private var readCompletion: ((Data?) -> Void)?
+	// Delegate
+	weak var delegate: BLECentralManagerDelegate?
 
 	// MARK: - Initialization
-
 	override init() {
 		super.init()
-		// Initialize CBCentralManager on the main queue
+		// Initialize on main queue is standard practice
 		centralManager = CBCentralManager(delegate: self, queue: DispatchQueue.main)
-		print("BLECentralManager initialized.")
+		log("BLECentralManager initialized.")
 	}
 
-	func getBluetoothState() -> CBManagerState {
-        return centralManager.state
-    }
+	// MARK: - Public Accessors
+	var currentBluetoothState: CBManagerState {
+		return centralManager.state
+	}
 
-	// MARK: - Public Methods
+	var isScanning: Bool {
+		return centralManager.isScanning
+	}
 
-	/// Requests a scan for peripherals advertising the specified service UUID.
-	/// Calls the completion handler after a timeout or when the target device is found.
-	/// - Parameters:
-	///   - timeout: Duration in seconds to scan before stopping. Defaults to 10 seconds.
-	///   - completion: Handler called with the list of discovered peripherals matching the name.
-	func requestScan(timeout: TimeInterval = 10.0, completion: @escaping ([CBPeripheral]) -> Void) {
+	// MARK: - Public Methods: Scanning
+	/// Starts scanning for peripherals. Connects immediately if target device is found.
+	/// Calls delegate `bleManagerDidDiscoverPeripherals` when scan finishes (timeout or stopped).
+	/// - Parameter timeout: Duration in seconds to scan. Defaults to 10 seconds.
+	func startScan(timeout: TimeInterval = 10.0) {
+		guard centralManager.state == .poweredOn else {
+			log("Cannot scan, Bluetooth is not powered on (\(centralManager.state)).")
+			// Delegate will be notified of state change via centralManagerDidUpdateState
+			return
+		}
 		guard !centralManager.isScanning else {
-			print("Scan already in progress.")
-			// Optionally call completion immediately with current discoveries or wait
-			// For simplicity, we just return here.
+			log("Scan already in progress.")
 			return
 		}
 
-		print("Scan requested.")
-		self.discoveryCompletion = completion
-		self.discoveredPeripherals.removeAll() // Clear previous results
-		self.scanRequested = true
+		log("Starting scan for peripherals (Timeout: \(timeout)s)...")
+		self.scanTimeout = timeout
+		self.discoveredPeripherals.removeAll() // Clear results from previous scan
+		self.targetPeripheral = nil // Clear potential target from previous scan
+		isConnecting = false // Reset connection flag
 
-		// Check if Bluetooth is ready, otherwise wait for state update
-		if centralManager.state == .poweredOn {
-			print("Bluetooth is already powered on. Starting scan.")
-			startActualScan(timeout: timeout)
-		} else {
-			print("Bluetooth is not ready (\(centralManager.state)). Waiting for state update.")
-			// Scan will be triggered by centralManagerDidUpdateState if state becomes .poweredOn
-		}
+		// Scan for devices advertising the specific service UUID for efficiency,
+		// or nil to discover all devices (useful for debugging).
+		// centralManager.scanForPeripherals(withServices: [moistureServiceUUID], options: nil)
+		 centralManager.scanForPeripherals(withServices: nil, options: nil) // Scan for all to allow selection
+
+		// Start timeout timer
+		scanTimer?.invalidate()
+		scanTimer = Timer.scheduledTimer(timeInterval: timeout, target: self, selector: #selector(scanDidTimeout), userInfo: nil, repeats: false)
 	}
 
+	/// Stops the ongoing peripheral scan.
+	func stopScan() {
+		guard centralManager.isScanning else { return }
+		log("Stopping scan.")
+		centralManager.stopScan()
+		scanTimer?.invalidate()
+		scanTimer = nil
+		// Notify delegate with current findings when scan is explicitly stopped or times out
+		delegate?.bleManagerDidDiscoverPeripherals(discoveredPeripherals)
+	}
+
+	@objc private func scanDidTimeout() {
+		guard centralManager.isScanning else { return }
+		log("Scan timed out after \(scanTimeout) seconds.")
+		stopScan() // This will also call the delegate
+	}
+
+	// MARK: - Public Methods: Connection
 	/// Connects to a specific peripheral.
-	/// - Parameters:
-	///   - peripheral: The CBPeripheral to connect to.
-	///   - completion: Optional handler called with connection success/failure status.
-	func connect(to peripheral: CBPeripheral, completion: ((Bool, Error?) -> Void)? = nil) {
+	/// - Parameter peripheral: The CBPeripheral to connect to.
+	func connect(to peripheral: CBPeripheral) {
 		guard !isConnecting else {
-			print("Connection attempt already in progress for \(peripheral.name ?? "a peripheral").")
+			log("Connection attempt already in progress.")
 			return
 		}
-
-		// Disconnect from any currently connected peripheral first
-		if let currentPeripheral = connectedPeripheral, currentPeripheral != peripheral {
-			 print("Disconnecting from previous peripheral: \(currentPeripheral.name ?? "Unknown")")
-			 disconnect() // Disconnect the old one
+		guard centralManager.state == .poweredOn else {
+			 log("Cannot connect, Bluetooth not powered on.")
+			 delegate?.bleManager(didFailToConnect: peripheral, error: NSError(domain: "BLEError", code: 0, userInfo: [NSLocalizedDescriptionKey: "Bluetooth is not powered on."]))
+			 return
 		}
 
+		// Disconnect if already connected to a different peripheral
+		if let currentConnected = connectedPeripheral, currentConnected != peripheral {
+			log("Disconnecting from previous peripheral: \(currentConnected.identifier)")
+			disconnect() // Disconnect the old one first
+		}
 
-		// Ensure we stop scanning before connecting
+		// Stop scanning if we are connecting manually (might have been scanning)
 		if centralManager.isScanning {
-			print("Stopping scan to initiate connection.")
-			stopScan() // Clears discoveryCompletion
+			log("Stopping scan to initiate connection.")
+			stopScan()
 		}
 
-		print("Connecting to \(peripheral.name ?? "Unknown")...")
-		self.connectionCompletion = completion
-		self.isConnecting = true
-		self.connectedPeripheral = peripheral // Assign immediately for delegate methods
-		self.connectedPeripheral?.delegate = self
+		log("Connecting to \(peripheral.name ?? "Unknown") (\(peripheral.identifier))...")
+		isConnecting = true
+		targetPeripheral = peripheral // Store the target device
+		targetPeripheral?.delegate = self // Set delegate *before* connecting
 		centralManager.connect(peripheral, options: nil)
 	}
 
 	/// Disconnects from the currently connected peripheral.
 	func disconnect() {
-		guard let peripheral = connectedPeripheral else {
-			print("Not connected to any peripheral.")
+		guard let peripheral = connectedPeripheral ?? targetPeripheral else { // Check both connected and target (if connection failed mid-way)
+			log("Not connected to any peripheral or no target specified.")
 			return
 		}
 
-		print("Disconnecting from \(peripheral.name ?? "Unknown")...")
+		log("Disconnecting from \(peripheral.name ?? "Unknown")...")
+		// Cancel connection if it was in progress or established
 		centralManager.cancelPeripheralConnection(peripheral)
-		// Peripheral object is cleared in didDisconnectPeripheral delegate method
+		// State cleanup happens in didDisconnectPeripheral delegate method
 	}
 
+	// MARK: - Public Methods: Data Interaction
 	/// Reads the value from the specific moisture characteristic.
-	/// Assumes the peripheral is connected and the characteristic has been discovered.
-	/// - Parameter completion: Handler called with the characteristic data or nil on failure.
-	func readMoistureValue(completion: @escaping (Data?) -> Void) {
-		self.readCompletion = completion // Store completion handler
-
+	/// Assumes connection and service/characteristic discovery are complete.
+	func readMoistureValue() {
 		guard let peripheral = connectedPeripheral, peripheral.state == .connected else {
-			print("Error: Peripheral not connected.")
-			completeRead(with: nil)
+			log("Error: Peripheral not connected.")
+			delegate?.bleManager(didReceiveData: nil, for: moistureCharUUID, error: NSError(domain: "BLEError", code: 1, userInfo: [NSLocalizedDescriptionKey: "Peripheral not connected."]))
 			return
 		}
 
 		guard let characteristic = findCharacteristic(uuid: moistureCharUUID, in: peripheral) else {
-			print("Error: Moisture characteristic not found or service not discovered yet.")
-			completeRead(with: nil)
+			log("Error: Moisture characteristic not found. Ensure services/characteristics are discovered.")
+			delegate?.bleManager(didReceiveData: nil, for: moistureCharUUID, error: NSError(domain: "BLEError", code: 2, userInfo: [NSLocalizedDescriptionKey: "Moisture characteristic not found."]))
 			return
 		}
 
-		print("Reading value from characteristic: \(characteristic.uuid)")
+		guard characteristic.properties.contains(.read) else {
+			 log("Error: Moisture characteristic does not support reading.")
+			 delegate?.bleManager(didReceiveData: nil, for: moistureCharUUID, error: NSError(domain: "BLEError", code: 3, userInfo: [NSLocalizedDescriptionKey: "Characteristic does not support read."]))
+			 return
+		}
+
+
+		log("Reading value from characteristic: \(characteristic.uuid)")
 		peripheral.readValue(for: characteristic)
 	}
 
-	// MARK: - Private Scan Method
-	
-	private func completeDiscovery() {
-		// First collect all devices for debugging
-		let allPeripherals = discoveredPeripherals
-		
-		// Filter for any of our target device names
-		let matchingPeripherals = discoveredPeripherals.filter { peripheral in
-			guard let name = peripheral.name?.lowercased() else { return false }
-			
-			// Check if the peripheral name contains any of our known device names
-			return serverNames.contains { knownName in
-				name.contains(knownName.lowercased())
-			}
-		}
-		
-		print("Scan complete. Found \(allPeripherals.count) total peripherals.")
-		if !allPeripherals.isEmpty {
-			print("All discovered devices:")
-			allPeripherals.forEach { peripheral in
-				print("  - \(peripheral.name ?? "Unnamed device") (\(peripheral.identifier))")
-			}
-		}
-		
-		print("Found \(matchingPeripherals.count) peripherals matching any known device name")
-		
-		DispatchQueue.main.async { [weak self] in // Ensure execution on main thread
-			if matchingPeripherals.isEmpty && !allPeripherals.isEmpty {
-				// If we found devices but none match our filter, return ALL devices
-				// This helps during development/debugging
-				print("No exact matches found, but returning all \(allPeripherals.count) discovered devices for selection")
-				self?.discoveryCompletion?(allPeripherals)
-			} else {
-				self?.discoveryCompletion?(matchingPeripherals)
-			}
-			self?.discoveryCompletion = nil // Clear completion handler
-			self?.discoveredPeripherals.removeAll() // Clear discovered list for next scan
-		}
-	}
-
-	private func startActualScan(timeout: TimeInterval) {
-		guard centralManager.state == .poweredOn else {
-			 print("Error: Cannot start scan, Bluetooth is not powered on.")
-			 scanRequested = false // Reset request if state is wrong
-			 completeDiscovery() // Call completion with empty array
-			 return
-		}
-
-		guard !centralManager.isScanning else {
-			 print("Internal check: Already scanning.") // Should ideally be caught by public func
-			 return
-		}
-
-		print("Starting actual scan for peripherals advertising service \(moistureServiceUUID)...")
-		scanRequested = false // Reset flag as we are now starting
-
-		print("Starting scan for ALL peripherals...")
-		// Scan for all devices (null service UUID) in development to see what's available
-		centralManager.scanForPeripherals(withServices: nil, options: [CBCentralManagerScanOptionAllowDuplicatesKey: false])
-
-		// Start a timer to stop scanning after the timeout
-		scanTimer?.invalidate() // Invalidate previous timer if any
-		scanTimer = Timer.scheduledTimer(withTimeInterval: timeout, repeats: false) { [weak self] _ in
-			print("Scan timed out after \(timeout) seconds.")
-			self?.stopScanAndCompleteDiscovery()
-		}
-	}
-
-	private func stopScan() {
-		if centralManager.isScanning {
-			print("Stopping scan.")
-			centralManager.stopScan()
-			scanTimer?.invalidate()
-			scanTimer = nil
-		}
-		scanRequested = false // Ensure request flag is off
-	}
-
-	private func stopScanAndCompleteDiscovery() {
-		stopScan()
-		completeDiscovery()
-	}
-
-	// Safely calls the read completion handler and cleans up
-	private func completeRead(with data: Data?) {
-		DispatchQueue.main.async { [weak self] in
-			self?.readCompletion?(data)
-			self?.readCompletion = nil
-		}
-	}
-
-	// Safely calls the connection completion handler and cleans up
-	private func completeConnection(success: Bool, error: Error?) {
-		isConnecting = false // Reset connecting flag
-		DispatchQueue.main.async { [weak self] in
-			self?.connectionCompletion?(success, error)
-			self?.connectionCompletion = nil
-		}
-	}
-
-
 	// MARK: - Private Helper Methods
 
-	/// Finds a specific characteristic within a connected peripheral's services.
+	/// Finds a specific characteristic within a connected peripheral's discovered services.
 	private func findCharacteristic(uuid: CBUUID, in peripheral: CBPeripheral) -> CBCharacteristic? {
-		guard let services = peripheral.services else {
-			return nil
-		}
+		guard let services = peripheral.services else { return nil }
 
-		for service in services {
-			if let characteristics = service.characteristics {
-				for characteristic in characteristics {
-					if characteristic.uuid == uuid {
-						return characteristic
-					}
-				}
-			}
-		}
-		return nil
+		return services.lazy
+			.flatMap { $0.characteristics ?? [] }
+			.first { $0.uuid == uuid }
 	}
 
-	/// Resets internal state related to connection and discovery.
-	private func resetConnectionState() {
+	/// Resets internal state related to the current connection/target.
+	private func resetConnectionState(for peripheral: CBPeripheral?) {
+		log("Resetting connection state for peripheral: \(peripheral?.identifier.uuidString ?? "None")")
+		if connectedPeripheral == peripheral {
+			connectedPeripheral?.delegate = nil
+			connectedPeripheral = nil
+		}
+		if targetPeripheral == peripheral {
+			targetPeripheral?.delegate = nil // Ensure delegate is cleared even if connection failed
+			targetPeripheral = nil
+		}
 		isConnecting = false
-		connectedPeripheral = nil // Clear reference
-		readCompletion = nil // Clear pending reads
-		connectionCompletion = nil // Clear pending connection callback
-		// Note: discoveryCompletion is handled by scan completion logic
 	}
 
-	// MARK: - CBCentralManagerDelegate Methods
+	/// Simple logger
+	private func log(_ message: String) {
+		// Replace with OSLog or conditional compilation if desired
+		 print("[BLEManager] \(message)")
+	}
+}
+
+// MARK: - CBCentralManagerDelegate Methods
+extension BLECentralManager: CBCentralManagerDelegate {
 
 	func centralManagerDidUpdateState(_ central: CBCentralManager) {
+		log("Bluetooth state changed: \(central.state)")
+		delegate?.bleManagerDidUpdateState(central.state)
+
 		switch central.state {
 		case .poweredOn:
-			print("Bluetooth state: Powered ON")
-			// If a scan was requested while powered off, start it now
-			if scanRequested {
-				print("Scan was pending, starting now.")
-				startActualScan(timeout: 10.0) // Use default or stored timeout
+			// If needed, could trigger an automatic scan here, but typically UI driven
+			break
+		case .poweredOff, .resetting, .unauthorized, .unsupported, .unknown:
+			// Stop scan if active
+			stopScan()
+			// If we were connected or connecting, the system handles disconnection,
+			// which will trigger didDisconnectPeripheral. Clean up our state there.
+			if let connected = connectedPeripheral {
+				 // Force cleanup if system doesn't send disconnect event quickly
+				 resetConnectionState(for: connected)
+				 delegate?.bleManager(didDisconnect: connected, error: NSError(domain: "BLEError", code: 4, userInfo: [NSLocalizedDescriptionKey: "Bluetooth became unavailable."]))
+			} else if let target = targetPeripheral, isConnecting {
+				 resetConnectionState(for: target)
+				 delegate?.bleManager(didFailToConnect: target, error: NSError(domain: "BLEError", code: 5, userInfo: [NSLocalizedDescriptionKey: "Bluetooth became unavailable during connection attempt."]))
 			}
-		case .poweredOff:
-			print("Bluetooth state: Powered OFF")
-			// Handle UI updates, stop actions
-			stopScan()
-			completeDiscovery() // Complete any pending scan with empty results
-			resetConnectionState() // Reset if we were connected/connecting
-			// Potentially alert the user
-		case .resetting:
-			print("Bluetooth state: Resetting")
-			// Wait for next state update (.poweredOn or .poweredOff)
-			stopScan() // Stop actions while resetting
-			resetConnectionState()
-		case .unauthorized:
-			print("Bluetooth state: Unauthorized")
-			// Alert user app needs Bluetooth permission
-			stopScan()
-			completeDiscovery()
-			resetConnectionState()
-		case .unsupported:
-			print("Bluetooth state: Unsupported")
-			// Alert user device doesn't support BLE
-			stopScan()
-			completeDiscovery()
-			resetConnectionState()
-		case .unknown:
-			print("Bluetooth state: Unknown")
-			// Wait for a definitive state update
+
 		@unknown default:
-			print("Bluetooth state: Encountered unknown state")
+			log("Encountered unknown Bluetooth state.")
 		}
 	}
 
 	func centralManager(_ central: CBCentralManager, didDiscover peripheral: CBPeripheral, advertisementData: [String : Any], rssi RSSI: NSNumber) {
-		// Optional: Filter by RSSI here if needed
-		// print("Discovered: \(peripheral.name ?? "Unknown") RSSI: \(RSSI)")
-
-		// Add to list if not already present
+		// Add to list if unique
 		if !discoveredPeripherals.contains(where: { $0.identifier == peripheral.identifier }) {
-			 print("Adding discovered peripheral: \(peripheral.name ?? "Unknown") (\(peripheral.identifier.uuidString))")
-			 discoveredPeripherals.append(peripheral)
+			log("Discovered: \(peripheral.name ?? "Unknown") (\(peripheral.identifier)) RSSI: \(RSSI)")
+			discoveredPeripherals.append(peripheral)
+			// Optionally update delegate immediately with the growing list, or wait for scan timeout/stop
+			// delegate?.bleManagerDidDiscoverPeripherals(discoveredPeripherals) // Uncomment for live updates
 		}
 
-		// Optional: Check if this is the target device and stop scanning early
-		// if let name = peripheral.name, name.contains(serverName) {
-		//    print("Target device '\(serverName)' found. Stopping scan early.")
-		//    stopScanAndCompleteDiscovery()
-		// }
-		// Note: Current logic waits for timeout or manual stop to return *all* matching devices.
-		// If you want to connect to the *first* one found, you'd call connect() here
-		// and modify the completion logic.
+		if let name = peripheral.name, name.lowercased().contains(serverName.lowercased()) {
+			log("Target device '\(serverName)' found. Attempting connection...")
+			stopScan() // Stop scanning
+			connect(to: peripheral) // Attempt to connect immediately
+			// Note: The delegate `bleManagerDidDiscoverPeripherals` will be called by `stopScan`.
+		}
 	}
 
 	func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
-		print("Successfully connected to \(peripheral.name ?? "Unknown").")
-		isConnecting = false // Connection attempt finished
+		log("Successfully connected to \(peripheral.name ?? "Unknown").")
+		isConnecting = false
+		connectedPeripheral = peripheral // Hold reference
+		connectedPeripheral?.delegate = self // Ensure delegate is set (should be already by connect method)
+		targetPeripheral = nil // Clear target as we are now connected
 
-		// Hold a strong reference
-		connectedPeripheral = peripheral
-		connectedPeripheral?.delegate = self
+		delegate?.bleManagerDidConnect(to: peripheral)
 
 		// Discover the specific service we need
-		print("Discovering services...")
+		log("Discovering services...")
 		peripheral.discoverServices([moistureServiceUUID])
-
-		completeConnection(success: true, error: nil)
 	}
 
 	func centralManager(_ central: CBCentralManager, didFailToConnect peripheral: CBPeripheral, error: Error?) {
-		print("Failed to connect to \(peripheral.name ?? "Unknown"): \(error?.localizedDescription ?? "Unknown error")")
-		if connectedPeripheral == peripheral { // Ensure we clear the correct peripheral reference
-		   resetConnectionState()
-		}
-		completeConnection(success: false, error: error)
+		log("Failed to connect to \(peripheral.name ?? "Unknown"): \(error?.localizedDescription ?? "Unknown error")")
+		resetConnectionState(for: peripheral) // Use the specific peripheral it failed for
+		delegate?.bleManager(didFailToConnect: peripheral, error: error)
 	}
 
 	func centralManager(_ central: CBCentralManager, didDisconnectPeripheral peripheral: CBPeripheral, error: Error?) {
 		if let error = error {
-			print("Disconnected from \(peripheral.name ?? "Unknown") with error: \(error.localizedDescription)")
+			log("Disconnected from \(peripheral.name ?? "Unknown") with error: \(error.localizedDescription)")
 		} else {
-			print("Disconnected cleanly from \(peripheral.name ?? "Unknown").")
+			log("Disconnected cleanly from \(peripheral.name ?? "Unknown").")
 		}
 
-		// Clear reference and state if this was the connected peripheral
+		// Clear reference and state only if this was the actively connected peripheral
 		if connectedPeripheral == peripheral {
-			resetConnectionState()
-			// Notify ViewModel or delegate about disconnection if needed
+			 resetConnectionState(for: peripheral)
+			 delegate?.bleManager(didDisconnect: peripheral, error: error)
 		} else {
-			 print("Disconnected from a peripheral that wasn't the primary connected one.")
+			 log("Disconnected from a peripheral (\(peripheral.identifier)) that wasn't the primary connected one (was \(connectedPeripheral?.identifier.uuidString ?? "None")). Maybe the targetPeripheral during a failed connection.")
+			 // Ensure target peripheral state is also cleaned up if it matches
+			 if targetPeripheral == peripheral {
+				 resetConnectionState(for: peripheral)
+				 // We might not need to call the delegate here if didFailToConnect was already called
+			 }
 		}
 	}
+}
 
-
-	// MARK: - CBPeripheralDelegate Methods
+// MARK: - CBPeripheralDelegate Methods
+extension BLECentralManager: CBPeripheralDelegate {
 
 	func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: Error?) {
 		if let error = error {
-			print("Error discovering services on \(peripheral.name ?? "Unknown"): \(error.localizedDescription)")
-			// Maybe disconnect or retry?
-			disconnect() // Simple cleanup
+			log("Error discovering services on \(peripheral.name ?? "Unknown"): \(error.localizedDescription)")
+			// Consider disconnecting or just reporting error
+			disconnect() // Simple cleanup: disconnect on service discovery error
+			delegate?.bleManager(didFailToConnect: peripheral, error: error) // Report as connection failure phase
 			return
 		}
 
-		guard let services = peripheral.services else {
-			print("No services discovered for \(peripheral.name ?? "Unknown").")
+		guard let services = peripheral.services, !services.isEmpty else {
+			log("No services discovered for \(peripheral.name ?? "Unknown").")
+			disconnect() // Disconnect if no services found
+			 delegate?.bleManager(didFailToConnect: peripheral, error: NSError(domain: "BLEError", code: 6, userInfo: [NSLocalizedDescriptionKey: "No services found."]))
 			return
 		}
 
-		print("Discovered services: \(services.map { $0.uuid.uuidString })")
+		log("Discovered services: \(services.map { $0.uuid.uuidString }) for \(peripheral.identifier)")
 
-		for service in services {
-			if service.uuid == moistureServiceUUID {
-				print("Found target service \(service.uuid). Discovering characteristics...")
-				peripheral.discoverCharacteristics([moistureCharUUID], for: service)
-				return // Found our service, no need to check others
-			}
+		// Find the specific service and discover characteristics
+		if let targetService = services.first(where: { $0.uuid == moistureServiceUUID }) {
+			log("Found target service \(targetService.uuid). Discovering characteristics...")
+			peripheral.discoverCharacteristics([moistureCharUUID], for: targetService)
+		} else {
+			log("Target service \(moistureServiceUUID) not found.")
+			disconnect() // Disconnect if target service is missing
+			delegate?.bleManager(didFailToConnect: peripheral, error: NSError(domain: "BLEError", code: 7, userInfo: [NSLocalizedDescriptionKey: "Required service not found."]))
 		}
-		print("Target service \(moistureServiceUUID) not found.")
-		// Handle case where expected service isn't present
 	}
 
 	func peripheral(_ peripheral: CBPeripheral, didDiscoverCharacteristicsFor service: CBService, error: Error?) {
 		if let error = error {
-			print("Error discovering characteristics for service \(service.uuid) on \(peripheral.name ?? "Unknown"): \(error.localizedDescription)")
+			log("Error discovering characteristics for service \(service.uuid): \(error.localizedDescription)")
+			 disconnect() // Disconnect on characteristic discovery error
+			 delegate?.bleManager(didFailToConnect: peripheral, error: error)
 			return
 		}
 
-		guard let characteristics = service.characteristics else {
-			print("No characteristics found for service \(service.uuid).")
+		guard let characteristics = service.characteristics, !characteristics.isEmpty else {
+			log("No characteristics found for service \(service.uuid).")
+			 disconnect() // Disconnect if no characteristics found
+			 delegate?.bleManager(didFailToConnect: peripheral, error: NSError(domain: "BLEError", code: 8, userInfo: [NSLocalizedDescriptionKey: "No characteristics found for service \(service.uuid)."]))
+
 			return
 		}
 
-		print("Discovered characteristics for service \(service.uuid): \(characteristics.map { $0.uuid.uuidString })")
+		log("Discovered characteristics for service \(service.uuid): \(characteristics.map { $0.uuid.uuidString })")
 
-		var foundTarget = false
-		for characteristic in characteristics {
-			if characteristic.uuid == moistureCharUUID {
-				print("Found target characteristic \(characteristic.uuid).")
-				foundTarget = true
-				// Optional: Enable notifications if the peripheral sends updates automatically
-				// if characteristic.properties.contains(.notify) {
-				//    print("Characteristic supports notify. Subscribing...")
-				//    peripheral.setNotifyValue(true, for: characteristic)
-				// }
-				// You might want to call a delegate/completion here indicating readiness to read/write
-			}
-		}
-		if !foundTarget {
-			 print("Target characteristic \(moistureCharUUID) not found in service \(service.uuid).")
+		// Check if our target characteristic is present
+		if characteristics.contains(where: { $0.uuid == moistureCharUUID }) {
+			log("Found target characteristic \(moistureCharUUID). Ready for interaction.")
+			// Notify the delegate that the peripheral is ready for read/write operations
+			delegate?.bleManagerIsReadyToRead(from: peripheral)
+		} else {
+			log("Target characteristic \(moistureCharUUID) not found in service \(service.uuid).")
+			disconnect() // Disconnect if target characteristic is missing
+			delegate?.bleManager(didFailToConnect: peripheral, error: NSError(domain: "BLEError", code: 9, userInfo: [NSLocalizedDescriptionKey: "Required characteristic not found."]))
 		}
 	}
 
 	func peripheral(_ peripheral: CBPeripheral, didUpdateValueFor characteristic: CBCharacteristic, error: Error?) {
-		if let error = error {
-			print("Error receiving value for characteristic \(characteristic.uuid): \(error.localizedDescription)")
-			if characteristic.uuid == moistureCharUUID {
-				completeRead(with: nil) // Call completion with nil on error for the target characteristic
-			}
-			return
-		}
+		 // Pass the result (data or error) to the delegate
+		 delegate?.bleManager(didReceiveData: characteristic.value, for: characteristic.uuid, error: error)
 
+		if let error = error {
+			log("Error reading value for characteristic \(characteristic.uuid): \(error.localizedDescription)")
+			return // Delegate already notified
+		}
 		guard let data = characteristic.value else {
-			print("Received notification/read response for \(characteristic.uuid) but data is nil.")
-			 if characteristic.uuid == moistureCharUUID {
-				completeRead(with: nil)
-			}
-			return
+			log("Received nil data for characteristic \(characteristic.uuid).")
+			return // Delegate already notified
 		}
-
-		// If this update is for the characteristic we tried to read, call completion
-		if characteristic.uuid == moistureCharUUID {
-			 print("Received value for moisture characteristic: \(data.count) bytes.")
-			 // Optional: Log hex representation
-			 // print("Data (hex): \(data.map { String(format: "%02X", $0) }.joined())")
-			 completeRead(with: data)
-		} else {
-			 print("Received value for unexpected characteristic: \(characteristic.uuid)")
-			 // Handle data from other characteristics if needed
-		}
+		log("Received \(data.count) bytes for characteristic \(characteristic.uuid).")
 	}
 
-	// Optional: Handle notification state changes if you use setNotifyValue
-	func peripheral(_ peripheral: CBPeripheral, didUpdateNotificationStateFor characteristic: CBCharacteristic, error: Error?) {
-		if let error = error {
-			print("Error changing notification state for \(characteristic.uuid): \(error.localizedDescription)")
-			return
-		}
+	// Optional: Implement other CBPeripheralDelegate methods as needed (didWriteValueFor, didUpdateNotificationStateFor, etc.)
+}
 
-		if characteristic.isNotifying {
-			print("Successfully subscribed to notifications for \(characteristic.uuid)")
-		} else {
-			print("Successfully unsubscribed from notifications for \(characteristic.uuid)")
+// MARK: - CBManagerState Extension for Logging
+extension CBManagerState: CustomStringConvertible {
+	public var description: String {
+		switch self {
+		case .poweredOn: return "Powered On"
+		case .poweredOff: return "Powered Off"
+		case .resetting: return "Resetting"
+		case .unauthorized: return "Unauthorized"
+		case .unsupported: return "Unsupported"
+		case .unknown: return "Unknown"
+		@unknown default: return "Unknown State"
 		}
 	}
-
-	// Optional: Handle write confirmations if you add write functionality
-	// func peripheral(_ peripheral: CBPeripheral, didWriteValueFor characteristic: CBCharacteristic, error: Error?) { ... }
 }

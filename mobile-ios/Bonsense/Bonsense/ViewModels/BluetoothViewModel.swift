@@ -7,6 +7,7 @@
 
 import Foundation
 import CoreBluetooth
+import Combine
 
 class BLEPeripheralViewModel: ObservableObject {
 	private var bluetoothManager: BLEPeripheralManager
@@ -60,94 +61,60 @@ class BLEPeripheralViewModel: ObservableObject {
 }
 
 class BLECentralViewModel: ObservableObject {
+
 	// MARK: - Properties
 	private var bleManager: BLECentralManager
-	private var discoveredPeripherals: [CBPeripheral] = [] // Keep track of actual CBPeripheral objects
+	private var discoveredPeripherals: [CBPeripheral] = [] // Store actual peripheral objects
 
 	// --- Published Properties for UI Updates ---
-	@Published var message: String = "Ready to connect"
-	@Published var waterLevel: WaterLevel? = WaterLevel(percentage: 0) // Initialize
+	@Published var message: String = "Initializing..."
+	@Published var waterLevel: WaterLevel? = WaterLevel(percentage: 0) // Default initial state
 	@Published var isConnected: Bool = false
+	@Published var isConnecting: Bool = false // Added state for connection process
 	@Published var isScanning: Bool = false
-	@Published var navigateToResult: Bool = false // For programmatic navigation
-	@Published var discoveredDevices: [String] = [] // User-friendly list of names/identifiers
-	@Published var canScan: Bool = true // Added: To control scan button enable/disable based on BLE state (optional but good UX)
-	@Published var connectionError: String? = nil // To display connection errors
+	@Published var navigateToResult: Bool = false
+	@Published var discoveredDevicesDisplay: [String] = [] // User-friendly list for Picker/List
+	@Published var canScan: Bool = false // Controlled by BLE state
+	@Published var connectionError: String? = nil
 
 	// MARK: - Initialization
-	init(bleManager: BLECentralManager = BLECentralManager()) { // Allow injecting for testing
+	init(bleManager: BLECentralManager = BLECentralManager()) {
 		self.bleManager = bleManager
-		// Optional: Observe BLE state from manager if you add a publisher/delegate there
-		// For now, we rely on function call results
+		self.bleManager.delegate = self // Set the ViewModel as the delegate
+		// Initial state check
+		updateCanScan(for: bleManager.currentBluetoothState)
+		message = bleManager.currentBluetoothState == .poweredOn ? "Ready to scan" : "Bluetooth is \(bleManager.currentBluetoothState)"
 		print("BLECentralViewModel initialized.")
 	}
 
-	// MARK: - Scanning
+	// MARK: - UI Actions
 	func startScanning() {
-		guard !isScanning else {
-			print("ViewModel: Scan already in progress.")
+		guard !isScanning && canScan else {
+			print("ViewModel: Cannot start scan (Already scanning or Bluetooth off).")
+			message = canScan ? "Scan already in progress." : "Bluetooth is off. Please turn it on."
 			return
 		}
 
 		print("ViewModel: Starting scan...")
 		isScanning = true
-		discoveredDevices = []
+		discoveredDevicesDisplay = []
 		discoveredPeripherals = []
-		connectionError = nil // Clear previous errors
+		connectionError = nil
+		message = "Scanning for devices..."
 
-		let knownDeviceNames = ["raspi", "BonsaiPeripheral", "bonsai", "raspberry"]
-
-		// Then replace the scan completion handler:
-		bleManager.requestScan(timeout: 10.0) { [weak self] peripherals in
-			// This completion runs AFTER the scan finishes (timeout or stopped)
-			DispatchQueue.main.async {
-				guard let self = self else { return }
-
-				print("ViewModel: Scan completed. Found \(peripherals.count) peripherals.")
-				self.discoveredPeripherals = peripherals
-				
-				// Create display names with optional indicators for known devices
-				self.discoveredDevices = peripherals.map { peripheral in
-					let name = peripheral.name ?? "Unknown Device"
-					let deviceId = peripheral.identifier.uuidString.prefix(8)
-					
-					// Check if this is one of our known devices
-					let isKnownDevice = self.bleManager.serverNames.contains { knownName in
-						name.lowercased().contains(knownName.lowercased())
-					}
-					
-					// Add an indicator for known devices
-					if isKnownDevice {
-						return "★ \(name) (\(deviceId)...)"
-					} else {
-						return "\(name) (\(deviceId)...)"
-					}
-				}
-
-				self.isScanning = false // Update scanning state
-
-				if peripherals.isEmpty {
-					self.message = "No Bluetooth devices found."
-				} else {
-					// Check if any of our known devices were found
-					let foundKnownDevice = peripherals.contains { peripheral in
-						guard let name = peripheral.name else { return false }
-						return self.bleManager.serverNames.contains { knownName in
-							name.lowercased().contains(knownName.lowercased())
-						}
-					}
-					
-					if foundKnownDevice {
-						self.message = "Found bonsai device! Select to connect."
-					} else {
-						self.message = "Found \(peripherals.count) devices. Select one to connect."
-					}
-				}
-			}
-		}
+		bleManager.startScan(timeout: 10.0) // Manager handles the actual scan logic
 	}
 
-	// MARK: - Connection
+	func stopScanning() {
+		guard isScanning else { return }
+		print("ViewModel: Stopping scan...")
+		bleManager.stopScan()
+		isScanning = false
+		message = "Scan stopped."
+		// Discovered devices list updated via delegate `bleManagerDidDiscoverPeripherals`
+	}
+
+
 	func connectToPeripheral(at index: Int) {
 		guard index >= 0 && index < discoveredPeripherals.count else {
 			print("ViewModel: Invalid peripheral index: \(index)")
@@ -155,118 +122,232 @@ class BLECentralViewModel: ObservableObject {
 			return
 		}
 
-		guard !isConnected else {
+		guard !isConnected && !isConnecting else {
 			print("ViewModel: Already connected or connection in progress.")
-			// Optionally disconnect first if you want to switch devices
+			message = "Connection already in progress or established."
 			return
 		}
 
 		let peripheral = discoveredPeripherals[index]
-		let deviceName = peripheral.name ?? "Unknown Device"
+		let deviceName = peripheral.name ?? "Unknown Device (\(String(peripheral.identifier.uuidString.prefix(8)))"
 
 		print("ViewModel: Attempting to connect to \(deviceName)...")
 		message = "Connecting to \(deviceName)..."
 		connectionError = nil
+		isConnecting = true // Indicate connection attempt start
 
-		bleManager.connect(to: peripheral) { [weak self] success, error in
-			// This completion handler is called when connection attempt finishes
-			DispatchQueue.main.async {
-				guard let self = self else { return }
-
-				if success {
-					print("ViewModel: Successfully connected to \(deviceName).")
-					self.isConnected = true
-					self.message = "Connected to \(deviceName). Reading data..."
-
-					// Connection succeeded, now try reading the initial value
-					// Add a small delay to allow services/characteristics discovery to potentially complete
-					// NOTE: A more robust solution involves the BLEManager signaling readiness via delegate/publisher.
-					DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-					   self.readMoistureValue()
-					}
-
-				} else {
-					print("ViewModel: Failed to connect to \(deviceName). Error: \(error?.localizedDescription ?? "Unknown error")")
-					self.isConnected = false
-					self.message = "Failed to connect to \(deviceName)."
-					self.connectionError = error?.localizedDescription ?? "An unknown connection error occurred."
-					// Consider clearing discovered devices or allowing retry
-				}
-			}
-		}
-	}
-
-	// MARK: - Data Interaction
-	func readMoistureValue() {
-		guard isConnected else {
-			print("ViewModel: Cannot read value, not connected.")
-			message = "Not connected. Cannot read data."
-			// Optionally attempt reconnect or guide user
-			return
-		}
-
-		print("ViewModel: Requesting moisture value read...")
-		message = "Reading moisture value..."
-
-		bleManager.readMoistureValue { [weak self] data in
-			DispatchQueue.main.async {
-				guard let self = self else { return }
-				guard let data = data else {
-					print("ViewModel: Failed to read moisture value (data was nil).")
-					self.message = "Failed to read moisture value."
-					// Consider if this means disconnection
-					// self.isConnected = false // Or maybe just show error? Depends on desired UX.
-					return
-				}
-
-				// --- Parsing Logic (copied from your original, seems reasonable) ---
-				if let valueString = String(data: data, encoding: .utf8) {
-					print("ViewModel: Received moisture value as String: \(valueString)")
-					if let percentage = Int(valueString.trimmingCharacters(in: .whitespacesAndNewlines)) {
-						let clampedPercentage = min(max(percentage, 0), 100)
-						self.waterLevel = WaterLevel(percentage: Double(clampedPercentage))
-						self.message = "Moisture: \(clampedPercentage)%"
-						self.navigateToResult = true // Trigger navigation on successful read
-					} else {
-						print("ViewModel: Warning: Could not parse integer from string: \(valueString)")
-						self.message = "Received: \(valueString) (invalid format)"
-						self.waterLevel = nil // Indicate invalid data
-					}
-				} else if let firstByte = data.first { // Fallback to binary if not UTF8
-					 print("ViewModel: Received non-UTF8 data, using first byte.")
-					 let percentage = Int(firstByte)
-					 let clampedPercentage = min(max(percentage, 0), 100)
-					 self.waterLevel = WaterLevel(percentage: Double(clampedPercentage))
-					 self.message = "Moisture: \(clampedPercentage)% (binary)"
-					 self.navigateToResult = true // Trigger navigation
-				 } else {
-					print("ViewModel: Received empty data.")
-					self.message = "Received empty data."
-					self.waterLevel = nil
-				 }
-				// --- End Parsing Logic ---
-			}
-		}
-	}
-
-	// MARK: - Refresh & Disconnect
-	func refreshMoistureValue() {
-		// Re-uses the readMoistureValue logic
-		readMoistureValue()
+		bleManager.connect(to: peripheral) // Manager handles connection and calls delegate back
 	}
 
 	func disconnect() {
+		guard isConnected || isConnecting else {
+			print("ViewModel: Not connected or connecting.")
+			return
+		}
 		print("ViewModel: Disconnecting...")
-		bleManager.disconnect()
+		message = "Disconnecting..."
+		bleManager.disconnect() // Manager handles disconnection and calls delegate back
 
-		// Reset state immediately in the UI
-		isConnected = false
-		message = "Disconnected."
-		waterLevel = WaterLevel(percentage: 0) // Reset to default or nil
-		navigateToResult = false
-		// Optionally clear discovered devices or keep them for reconnect
-		// discoveredDevices = []
-		// discoveredPeripherals = []
-		connectionError = nil
+		// We could reset state here, but it's better to wait for the delegate callback
+		// for didDisconnect to ensure the BLE stack is clean.
+	}
+
+	func refreshMoistureValue() {
+		guard isConnected else {
+			print("ViewModel: Cannot refresh value, not connected.")
+			message = "Not connected. Cannot read data."
+			return
+		}
+
+		print("ViewModel: Requesting moisture value refresh...")
+		message = "Reading moisture value..."
+		bleManager.readMoistureValue() // Manager handles read and calls delegate back
+	}
+
+	// MARK: - Private Helpers
+	private func updateCanScan(for bleState: CBManagerState) {
+		canScan = (bleState == .poweredOn)
+	}
+
+	private func mapPeripheralsToDisplay(_ peripherals: [CBPeripheral]) {
+		let targetDeviceNameLower = bleManager.serverName.lowercased() // Get target name from manager
+
+		discoveredPeripherals = peripherals // Store the actual objects
+		discoveredDevicesDisplay = peripherals.map { peripheral in
+			let name = peripheral.name ?? "Unknown Device"
+			let deviceId = peripheral.identifier.uuidString.prefix(8)
+			let displayName = "\(name) (\(deviceId)...)"
+
+			// Check if this is our target device
+			let isTargetDevice = name.lowercased().contains(targetDeviceNameLower)
+
+			// Add an indicator for the target device (optional)
+			return isTargetDevice ? "★ \(displayName)" : displayName
+		}
+	}
+
+	private func parseMoistureData(_ data: Data?) {
+		 guard let data = data else {
+			 print("ViewModel: Failed to read moisture value (data was nil).")
+			 message = "Failed to read moisture value."
+			 // Decide if nil data means error or just temporary issue
+			 // self.waterLevel = nil // Optionally clear level on error
+			 return
+		 }
+
+		 var parsed = false
+		 if let valueString = String(data: data, encoding: .utf8) {
+			 print("ViewModel: Received moisture value as String: \(valueString)")
+			 if let percentage = Int(valueString.trimmingCharacters(in: .whitespacesAndNewlines)) {
+				 let clampedPercentage = min(max(percentage, 0), 100)
+				 self.waterLevel = WaterLevel(percentage: Double(clampedPercentage))
+				 self.message = "Moisture: \(clampedPercentage)%"
+				 self.navigateToResult = true // Trigger navigation on successful read
+				 parsed = true
+			 } else {
+				 print("ViewModel: Warning: Could not parse integer from string: \(valueString)")
+				 self.message = "Received: \(valueString) (invalid format)"
+				 self.waterLevel = nil // Indicate invalid data
+			 }
+		 }
+
+		// Fallback to binary if not UTF8 or parsing failed
+		 if !parsed, let firstByte = data.first {
+			  print("ViewModel: Received non-UTF8 data or parse failed, using first byte.")
+			  let percentage = Int(firstByte)
+			  let clampedPercentage = min(max(percentage, 0), 100)
+			  self.waterLevel = WaterLevel(percentage: Double(clampedPercentage))
+			  self.message = "Moisture: \(clampedPercentage)% (binary)"
+			  self.navigateToResult = true // Trigger navigation
+			  parsed = true
+		  }
+
+		 if !parsed {
+			 print("ViewModel: Received empty or unparseable data.")
+			 self.message = "Received unreadable data."
+			 self.waterLevel = nil
+		 }
+	}
+}
+
+// MARK: - BLECentralManagerDelegate Conformance
+extension BLECentralViewModel: BLECentralManagerDelegate {
+
+	func bleManagerDidUpdateState(_ state: CBManagerState) {
+		DispatchQueue.main.async {
+			self.updateCanScan(for: state)
+			if !self.canScan && (self.isConnected || self.isConnecting) {
+				// If BT turns off while connected/connecting, reset state
+				self.isConnected = false
+				self.isConnecting = false
+				self.message = "Bluetooth turned off."
+				self.connectionError = "Bluetooth was turned off or became unavailable."
+				self.navigateToResult = false
+				self.waterLevel = WaterLevel(percentage: 0) // Reset
+			} else if self.canScan {
+				self.message = self.isScanning ? "Scanning..." : "Ready to scan"
+			} else {
+				 self.message = "Bluetooth is \(state)"
+			}
+			 print("ViewModel: Bluetooth state updated to \(state). CanScan: \(self.canScan)")
+		}
+	}
+
+	func bleManagerDidDiscoverPeripherals(_ peripherals: [CBPeripheral]) {
+		DispatchQueue.main.async {
+			 print("ViewModel: Delegate received \(peripherals.count) discovered peripherals.")
+			 self.mapPeripheralsToDisplay(peripherals)
+			 self.isScanning = self.bleManager.isScanning // Sync scanning state just in case
+
+			if !self.isScanning { // Only update message if scan finished
+				if peripherals.isEmpty {
+					  self.message = "No Bluetooth devices found."
+				} else {
+					// Check if our known device was among them
+					let foundTargetDevice = peripherals.contains { peripheral in
+						 guard let name = peripheral.name else { return false }
+						 return name.lowercased().contains(self.bleManager.serverName.lowercased())
+					 }
+
+					 if foundTargetDevice {
+						 self.message = "Found \(self.bleManager.serverName)! Select to connect."
+					 } else {
+						 self.message = "Found \(peripherals.count) device(s). Select one to connect."
+					 }
+				}
+			}
+		}
+	}
+
+	func bleManagerDidConnect(to peripheral: CBPeripheral) {
+		DispatchQueue.main.async {
+			 print("ViewModel: Delegate received successful connection to \(peripheral.name ?? "Unknown"). Waiting for services...")
+			 self.isConnected = false // Still false until services are ready
+			 self.isConnecting = true // Still technically connecting until ready
+			 self.message = "Connected to \(peripheral.name ?? "Device"). Discovering services..."
+			 self.connectionError = nil
+		}
+	}
+
+	func bleManagerIsReadyToRead(from peripheral: CBPeripheral) {
+		DispatchQueue.main.async {
+			print("ViewModel: Delegate received ready signal from \(peripheral.name ?? "Unknown").")
+			self.isConnected = true // NOW fully connected and ready
+			self.isConnecting = false
+			self.message = "Device ready. Reading initial value..."
+			// Automatically read the value once ready
+			self.refreshMoistureValue()
+		}
+	}
+
+	func bleManager(didFailToConnect peripheral: CBPeripheral, error: Error?) {
+		DispatchQueue.main.async {
+			let name = peripheral.name ?? "Device"
+			let errorDesc = error?.localizedDescription ?? "Unknown error"
+			print("ViewModel: Delegate received connection failure for \(name). Error: \(errorDesc)")
+			self.isConnected = false
+			self.isConnecting = false
+			self.message = "Failed to connect to \(name)."
+			self.connectionError = errorDesc
+		}
+	}
+
+	func bleManager(didDisconnect peripheral: CBPeripheral, error: Error?) {
+		DispatchQueue.main.async {
+			let name = peripheral.name ?? "Device"
+			print("ViewModel: Delegate received disconnection from \(name). Error: \(error?.localizedDescription ?? "None")")
+			self.isConnected = false
+			self.isConnecting = false // Ensure connecting flag is also reset
+			self.message = "Disconnected from \(name)."
+			self.waterLevel = WaterLevel(percentage: 0) // Reset value
+			self.navigateToResult = false // Ensure navigation resets
+			if let error = error {
+				self.connectionError = "Disconnected with error: \(error.localizedDescription)"
+			} else {
+				self.connectionError = nil // Clear error on clean disconnect
+			}
+			// Optionally clear device list or keep for reconnection attempt
+			 // self.discoveredDevicesDisplay = []
+			 // self.discoveredPeripherals = []
+		}
+	}
+
+	func bleManager(didReceiveData data: Data?, for characteristicUUID: CBUUID, error: Error?) {
+		DispatchQueue.main.async {
+			 guard characteristicUUID == self.bleManager.moistureCharUUID else {
+				 print("ViewModel: Received data for unexpected characteristic \(characteristicUUID). Ignoring.")
+				 return // Ignore data from other characteristics for now
+			 }
+
+			 if let error = error {
+				 print("ViewModel: Delegate received error reading moisture value: \(error.localizedDescription)")
+				 self.message = "Error reading value: \(error.localizedDescription)"
+				  self.waterLevel = nil
+				 return
+			 }
+
+			 print("ViewModel: Delegate received moisture data.")
+			 self.parseMoistureData(data) // Use the existing parsing logic
+		}
 	}
 }

@@ -8,7 +8,8 @@
 import SwiftUI
 
 struct LandingView: View {
-	@StateObject private var viewModel = LandingViewModel()
+	@State private var navigateToPhoto = false
+	@State private var navigateToSensor = false
 	
 	var body: some View {
 		NavigationView {
@@ -47,31 +48,14 @@ struct LandingView: View {
 					
 					// Action buttons
 					VStack(spacing: 20) {
-						Button(action: {
-							viewModel.connectToSensor()
-						}) {
-							HStack {
-								Image(systemName: "antenna.radiowaves.left.and.right")
-									.font(.system(size: 20))
-								
-								Text("Connect to Sensor")
-									.font(BonsaiTheme.bodyFont)
-							}
-							.padding()
-							.frame(maxWidth: .infinity)
-							.background(BonsaiTheme.skyBlue)
-							.foregroundColor(.white)
-							.cornerRadius(15)
-							.shadow(radius: 3)
-						}
-						.padding(.horizontal)
+						
 						
 						NavigationLink(
 							destination: PhotoView(),
-							isActive: $viewModel.navigateToPhotoView
+							isActive: $navigateToPhoto
 						) {
 							Button(action: {
-								viewModel.navigateToCamera()
+								navigateToPhoto = true
 							}) {
 								HStack {
 									Image(systemName: "camera.fill")
@@ -91,10 +75,27 @@ struct LandingView: View {
 						}
 						
 						NavigationLink(
-							destination: SensorPairingView(bluetoothViewModel: viewModel.bluetoothViewModel),
-							isActive: $viewModel.navigateToSensorView
+							destination: SensorPairingView(),
+							isActive: $navigateToSensor
 						) {
-							EmptyView()
+							Button(action: {
+								navigateToSensor = true
+							}) {
+								HStack {
+									Image(systemName: "antenna.radiowaves.left.and.right")
+										.font(.system(size: 20))
+									
+									Text("Connect to Sensor")
+										.font(BonsaiTheme.bodyFont)
+								}
+								.padding()
+								.frame(maxWidth: .infinity)
+								.background(BonsaiTheme.skyBlue)
+								.foregroundColor(.white)
+								.cornerRadius(15)
+								.shadow(radius: 3)
+							}
+							.padding(.horizontal)
 						}
 					}
 					
