@@ -11,10 +11,10 @@ import SwiftUI
 class LandingViewModel: ObservableObject {
 	@Published var navigateToPhotoView = false
 	@Published var navigateToSensorView = false
-	@Published var bluetoothViewModel = BluetoothViewModel()
+	@Published var bluetoothViewModel = BLECentralViewModel()
 		
 	func connectToSensor() {
-		bluetoothViewModel.startAdvertising()
+		bluetoothViewModel.startScanning()
 		navigateToSensorView = true
 	}
 	
