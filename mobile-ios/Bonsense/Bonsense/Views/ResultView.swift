@@ -10,7 +10,7 @@ import SwiftUI
 struct ResultView: View {
 	@ObservedObject var viewModel: ResultViewModel
 	@Environment(\.presentationMode) var presentationMode
-	@EnvironmentObject var bluetoothViewModel: BluetoothViewModel
+	@EnvironmentObject var bluetoothViewModel: BLECentralViewModel
 	
 	var body: some View {
 		ZStack {
@@ -97,7 +97,21 @@ struct ResultView: View {
 				.cornerRadius(20)
 				.shadow(color: Color.gray.opacity(0.3), radius: 5)
 				
-				Spacer()
+				Button(action: {
+					bluetoothViewModel.refreshMoistureValue()
+				}) {
+					HStack {
+						Image(systemName: "arrow.clockwise.circle.fill")
+						Text("Refresh")
+					}
+					.font(BonsaiTheme.bodyFont)
+					.padding()
+					.frame(width: 200)
+					.background(BonsaiTheme.earthBrown)
+					.foregroundColor(.white)
+					.cornerRadius(15)
+					.shadow(radius: 3)
+				}
 				
 				// Back to home button
 				Button(action: {
@@ -106,7 +120,7 @@ struct ResultView: View {
 				}) {
 					HStack {
 						Image(systemName: "house.fill")
-						Text("New Scan")
+						Text("Disconnect")
 					}
 					.font(BonsaiTheme.bodyFont)
 					.padding()

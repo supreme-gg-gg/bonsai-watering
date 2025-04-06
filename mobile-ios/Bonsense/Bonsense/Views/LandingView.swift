@@ -91,7 +91,7 @@ struct LandingView: View {
 						}
 						
 						NavigationLink(
-							destination: SensorReadingView(bluetoothViewModel: viewModel.bluetoothViewModel),
+							destination: SensorPairingView(bluetoothViewModel: viewModel.bluetoothViewModel),
 							isActive: $viewModel.navigateToSensorView
 						) {
 							EmptyView()
