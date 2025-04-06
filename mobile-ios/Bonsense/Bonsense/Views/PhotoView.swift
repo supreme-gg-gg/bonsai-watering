@@ -89,7 +89,7 @@ struct PhotoView: View {
 				
 				// Navigation link to Results
 				NavigationLink(
-					destination: ResultView(viewModel: ResultViewModel(waterLevel: viewModel.waterLevel ?? WaterLevel(percentage: 0))),
+					destination: PhotoResultView(viewModel: ResultViewModel(waterLevel: viewModel.waterLevel ?? WaterLevel(percentage: 0))),
 					isActive: $viewModel.navigateToResult
 				) {
 					EmptyView()
