@@ -149,7 +149,7 @@ def perform_loocv(X, y, n_neighbors=3, weights='distance'):
     return np.array(predictions), np.array(true_values)
 
 def main():
-    df, image_dir = load_data("new_samples/samples.csv", "new_samples/")
+    df, image_dir = load_data("../new_samples/samples.csv", "../new_samples/")
     X, y = prepare_features(df, image_dir, normalize=APPLY_LIGHTING_NORMALIZATION, augment=True)
     
     # Perform LOOCV
