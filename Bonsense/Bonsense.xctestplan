@@ -17,7 +17,13 @@
     }
   },
   "testTargets" : [
-
+    {
+      "target" : {
+        "containerPath" : "container:Bonsense.xcodeproj",
+        "identifier" : "4B75068A2DA45900001D3FB1",
+        "name" : "BonsenseTests"
+      }
+    }
   ],
   "version" : 1
 }

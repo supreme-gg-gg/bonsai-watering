@@ -20,15 +20,22 @@ struct LandingView: View {
 				VStack(spacing: 40) {
 					Spacer()
 					// Title with leaf icon
-					VStack(spacing: 15) {
-						Text("Bonsai")
+					VStack(spacing: 8) {
+						Text("BonSense") // Updated Title
 							.font(BonsaiTheme.titleFont)
 							.foregroundColor(BonsaiTheme.primaryGreen)
-						
-						Text("Water Monitor")
+
+						// Optional: Keep divider or remove if subtitle is enough
+						 Rectangle()
+						     .frame(height: 1)
+						     .foregroundColor(BonsaiTheme.lightGreen.opacity(0.5))
+						     .frame(width: 100)
+
+						Text("Listen to Your Leaves.") // Updated Subtitle
 							.font(BonsaiTheme.headlineFont)
-							.foregroundColor(BonsaiTheme.earthBrown)
+							.foregroundColor(BonsaiTheme.earthBrown.opacity(0.8))
 					}
+					.padding(.bottom, 30)
 					
 					// Bonsai image
 					ZStack {
