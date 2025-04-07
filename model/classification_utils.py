@@ -26,6 +26,15 @@ AUGMENTATION_PARAMS: Dict[str, List[int]] = {
     'brightness': [-10, 10],
     'rotation': [-5, 5],
 }
+FEATURE_NAMES = [
+    'mean_R', 'mean_G', 'mean_B',
+    'std_R', 'std_G', 'std_B',
+    'var_R', 'var_G', 'var_B',
+    'mean_H', 'mean_S', 'mean_V',
+    'std_H', 'std_S', 'std_V',
+    'mean_L', 'mean_A', 'mean_B',
+    'entropy'
+]
 
 def load_data(csv_path: str, image_dir: str) -> Tuple[pd.DataFrame, str]:
     """Load dataset from CSV and image directory."""
@@ -86,8 +95,21 @@ def entropy(img: np.ndarray) -> float:
     hist = hist.ravel() / hist.sum()
     return -np.sum(hist * np.log2(hist + 1e-7))
 
-def extract_features(image_path: str, normalize: bool = True, augment: bool = True) -> List[List[float]]:
-    """Extract features from a single image."""
+def extract_features(image_path: str, normalize: bool = True, 
+                     augment: bool = False) -> List[List[float]]:
+    """Extract features from a single image.
+    
+    Returns:
+        List of feature vectors, where each vector contains the following features in order:
+        - RGB means (3)
+        - RGB standard deviations (3)
+        - RGB variances (3)
+        - HSV means (3)
+        - HSV standard deviations (3)
+        - LAB means (3)
+        - Entropy (1)
+        Total: 19 features
+    """
     img = cv2.imread(image_path)
     if img is None:
         raise FileNotFoundError(f"Image not found: {image_path}")
@@ -104,33 +126,37 @@ def extract_features(image_path: str, normalize: bool = True, augment: bool = Tr
         img_hsv = cv2.cvtColor(processed_img, cv2.COLOR_BGR2HSV)
         img_lab = cv2.cvtColor(processed_img, cv2.COLOR_BGR2LAB)
         
-        # Extract features from multiple color spaces
-        features = {}
+        # Initialize feature vector with fixed order
+        features = []
         
         # RGB features
-        for i, channel in enumerate(['R', 'G', 'B']):
-            features[f'mean_{channel}'] = np.mean(img_rgb[:,:,i])
-            features[f'std_{channel}'] = np.std(img_rgb[:,:,i])
-            features[f'var_{channel}'] = np.var(img_rgb[:,:,i])
-        
+        for i in range(3):
+            features.append(np.mean(img_rgb[:,:,i]))  # RGB means
+        for i in range(3):
+            features.append(np.std(img_rgb[:,:,i]))   # RGB std devs
+        for i in range(3):
+            features.append(np.var(img_rgb[:,:,i]))   # RGB variances
+            
         # HSV features
-        for i, channel in enumerate(['H', 'S', 'V']):
-            features[f'mean_{channel}'] = np.mean(img_hsv[:,:,i])
-            features[f'std_{channel}'] = np.std(img_hsv[:,:,i])
-        
+        for i in range(3):
+            features.append(np.mean(img_hsv[:,:,i]))  # HSV means
+        for i in range(3):
+            features.append(np.std(img_hsv[:,:,i]))   # HSV std devs
+            
         # LAB features
-        for i, channel in enumerate(['L', 'A', 'B']):
-            features[f'mean_{channel}'] = np.mean(img_lab[:,:,i])
-        
-        # Texture features (using grayscale)
+        for i in range(3):
+            features.append(np.mean(img_lab[:,:,i]))  # LAB means
+            
+        # Texture features
         gray = cv2.cvtColor(processed_img, cv2.COLOR_BGR2GRAY)
-        features['entropy'] = entropy(gray)
+        features.append(entropy(gray))
         
-        features_list.append(list(features.values()))
+        features_list.append(features)
     
     return features_list
 
-def prepare_features(df: pd.DataFrame, image_dir: str, normalize: bool = True, augment: bool = True) -> Tuple[np.ndarray, np.ndarray]:
+def prepare_features(df: pd.DataFrame, image_dir: str,
+                     normalize: bool = True, augment: bool = False) -> Tuple[np.ndarray, np.ndarray]:
     """Prepare features and labels from the dataset."""
     X, y = [], []
     for _, row in df.iterrows():

@@ -1,0 +1,23 @@
+{
+  "configurations" : [
+    {
+      "id" : "B7F0ED63-A6BF-4843-879C-F257FC1BD605",
+      "name" : "Test Scheme Action",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "codeCoverage" : false,
+    "targetForVariableExpansion" : {
+      "containerPath" : "container:Bonsense.xcodeproj",
+      "identifier" : "4B1CCDCE2D87D04E00B8FD40",
+      "name" : "Bonsense"
+    }
+  },
+  "testTargets" : [
+
+  ],
+  "version" : 1
+}

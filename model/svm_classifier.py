@@ -96,16 +96,16 @@ def main():
     print(f"Extracted {X.shape[1]} features from each sample")
     
     # Perform cross-validation to evaluate model
-    predictions, true_values, probabilities = perform_loocv(X, y, n_components=2, kernel='rbf', C=10)
+    predictions, true_values, probabilities = perform_loocv(X, y, n_components=2, kernel='rbf', C=10, with_lda=True)
     
     perform_evaluation(true_values, predictions)
     
     # Train final model on all data
-    model = train_model(X, y, n_components=2, kernel='rbf', C=10)
+    model = train_model(X, y, n_components=2, kernel='rbf', C=10, with_lda=True)
     
     # Save the model
-    save_model(model, scaler=None, feature_names=None, model_file="soil_lda_svm_classifier.joblib",
-               model_type='LDA-SVM', class_names=['Dry', 'Moist', 'Wet'])
+    save_model(model, scaler=None, feature_names=None, model_file="soil_svm_classifier.joblib",
+               model_type='SVM', class_names=['Dry', 'Moist', 'Wet'])
     
     print("\nExample of model usage:")
     print("model = joblib.load('soil_lda_svm_classifier.joblib')")
