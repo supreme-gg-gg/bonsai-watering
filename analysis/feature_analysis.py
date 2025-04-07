@@ -151,28 +151,28 @@ visualize_anova_results(f_values, p_values)
 
 # 2. PCA or t-SNE for dimensionality reduction and visualization
 # PCA for dimensionality reduction to 2D
-# pca = PCA(n_components=2)
-# features_pca = pca.fit_transform(features_scaled)
+pca = PCA(n_components=2)
+features_pca = pca.fit_transform(features_scaled)
 
-# # Visualize PCA result
-# plt.figure(figsize=(8, 6))
-# sns.scatterplot(x=features_pca[:, 0], y=features_pca[:, 1], hue=labels, palette='Set1')
-# plt.title('PCA of Soil Images')
-# plt.xlabel('Principal Component 1')
-# plt.ylabel('Principal Component 2')
-# plt.show()
+# Visualize PCA result
+plt.figure(figsize=(8, 6))
+sns.scatterplot(x=features_pca[:, 0], y=features_pca[:, 1], hue=labels, palette='Set1')
+plt.title('PCA of Soil Images')
+plt.xlabel('Principal Component 1')
+plt.ylabel('Principal Component 2')
+plt.show()
 
-# # 3. Clustering (K-Means)
-# kmeans = KMeans(n_clusters=3)
-# labels_kmeans = kmeans.fit_predict(features_scaled)
+# 3. Clustering (K-Means)
+kmeans = KMeans(n_clusters=3)
+labels_kmeans = kmeans.fit_predict(features_scaled)
 
-# # Visualize KMeans result
-# plt.figure(figsize=(8, 6))
-# sns.scatterplot(x=features_pca[:, 0], y=features_pca[:, 1], hue=labels_kmeans, palette='Set1')
-# plt.title('K-Means Clustering of Soil Images')
-# plt.xlabel('Principal Component 1')
-# plt.ylabel('Principal Component 2')
-# plt.show()
+# Visualize KMeans result
+plt.figure(figsize=(8, 6))
+sns.scatterplot(x=features_pca[:, 0], y=features_pca[:, 1], hue=labels_kmeans, palette='Set1')
+plt.title('K-Means Clustering of Soil Images')
+plt.xlabel('Principal Component 1')
+plt.ylabel('Principal Component 2')
+plt.show()
 
 # # 3. Clustering (DBSCAN)
 # dbscan = DBSCAN(eps=0.5, min_samples=5)
