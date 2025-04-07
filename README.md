@@ -2,9 +2,11 @@
 
 Praxis II -- Bonsai soil moisture monitoring and watering system
 
+To be written and polished...
+
 ## Development Notes
 
-- `firmware` contains code for Raspberry Pi. Require: `RPi.GPIO, PiCamera2, bleak`
+- `firmware` contains code for Raspberry Pi. Require: `RPi.GPIO, PiCamera2, bleak, bless`
 
 - `analysis` contains preliminary data analysis (e.g. feature selection) and preprocessing code. Require: `pandas, numpy, scipy, matplotlib, seaborn, scikit-learn, opencv-python`
 
@@ -12,15 +14,23 @@ Praxis II -- Bonsai soil moisture monitoring and watering system
 
 - `model` contains the machine learning model training code. Require: `pandas, numpy, matplotlib, scikit-learn, scikit-image, torch, torchvision`
 
-## TODO
+## Analysis
 
-- [ ] Switch roles of central and peripheral for more robust BLE connection
+PCA, TSNE, LDA.
 
-- [ ] Setup picamera, perform testing of the photo approach and spectorsocpy approach
+## Model Results
 
-- [ ] Smartphone photo model training + deployment with CoreML and to Raspberry Pi with the PiCam
+We first did the research paper's testing with regression task, both failed (SVM regressor and CNN). Then we tried regression on our dataset, didn't go well. Then we finalized the following models for classification task:
 
-- [ ] Continued investigation of gray level vs direct CNN vs smartphone spectroscopy methods
+0. KNN standalone: 64% accuracy, 0.65 F1 on average (with augmentation)
+
+1. SVC standalone: 56% accuracy, 0.55 F1 on average (w/o augmentation)
+
+2. LDA-SVC: 66% accuracy, 0.7 F1 on average (w/o augmentation)
+
+3. LightGBM: 34% accuracy, 0.3 F1 on average (w/o augmentation)
+
+We finally selected teh LDA-SVC model for deployment. I believe with more augmentation and larger dataset we can achieve better results.
 
 ## References
 
