@@ -11,29 +11,9 @@ import XCTest
 
 class InferenceTest: XCTestCase {
     
-    func testBasicPredictionPipeline() throws {
-        // Create a simple test image (256x256 red square)
-        let size = CGSize(width: 256, height: 256)
-        UIGraphicsBeginImageContextWithOptions(size, false, 1.0)
-        let context = UIGraphicsGetCurrentContext()!
-        context.setFillColor(UIColor.red.cgColor)
-        context.fill(CGRect(origin: .zero, size: size))
-        let testImage = UIGraphicsGetImageFromCurrentImageContext()!
-        UIGraphicsEndImageContext()
-        
-        // Initialize prediction service
-        let predictionService = try SVCPredictionService()
-        
-        // Attempt prediction
-        let result = try predictionService.predict(image: testImage)
-        
-        // Verify we got a result
-        XCTAssertFalse(result.isEmpty, "Prediction should return a non-empty string")
-    }
-
-    func testSoilImagePrediction() throws {
+    func testSoilPredictionPipeline() throws {
         // Load a sample soil image from the app bundle
-        guard let imagePath = Bundle(for: type(of: self)).path(forResource: "dry0", ofType: "jpg"),
+        guard let imagePath = Bundle(for: type(of: self)).path(forResource: "wet3", ofType: "jpg"),
               let testImage = UIImage(contentsOfFile: imagePath) else {
             XCTFail("Failed to load sample soil image")
             return
@@ -49,9 +29,30 @@ class InferenceTest: XCTestCase {
         XCTAssertFalse(result.isEmpty, "Prediction should return a non-empty string")
     }
 
+    func testSoilPredictionCategories() throws {
+        // Loads a dry, humid, and wet image and test all three
+        let categories = ["dry", "humid", "wet"]
+		let predictionService = try SVCPredictionService()
+        for category in categories {
+            guard let imagePath = Bundle(for: type(of: self)).path(forResource: "\(category)", ofType: "jpg"),
+                  let testImage = UIImage(contentsOfFile: imagePath) else {
+                XCTFail("Failed to load sample soil image for category \(category)")
+                return
+            }
+            
+            // Attempt prediction
+            let result = try predictionService.predict(image: testImage)
+            
+            // Verify we got a result
+            XCTAssertFalse(result.isEmpty, "Prediction should return a non-empty string for category \(category)")
+			
+			print("Prediction result for \(category) is \(result)")
+        }
+    }
+
     func testInferencePerformance() throws {
         // Load a sample soil image from the app bundle
-        guard let imagePath = Bundle(for: type(of: self)).path(forResource: "dry0", ofType: "jpg"),
+        guard let imagePath = Bundle(for: type(of: self)).path(forResource: "dry", ofType: "jpg"),
               let testImage = UIImage(contentsOfFile: imagePath) else {
             XCTFail("Failed to load sample soil image")
             return
