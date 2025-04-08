@@ -19,7 +19,7 @@ class CalibratedMoistureSensor:
         self.channel = channel
         
         # Default calibration based on provided measurements
-        self.calibration_points = calibration_points or [(0,0), (220, 3), (365, 7.5), (680, 15.0)]
+        self.calibration_points = calibration_points or [(0,0), (84, 5), (286, 10), (495, 15), (650, 20)]
         
         # Fit a line through calibration points
         x = np.array([point[0] for point in self.calibration_points])
