@@ -9,11 +9,12 @@ import SwiftUI
 
 @main
 struct BonsaiWaterMonitorApp: App {
-	@StateObject private var bleViewModel = BLECentralViewModel()
-	var body: some Scene {
-		WindowGroup {
-			LandingView()
-				.environmentObject(bleViewModel)
-		}
-	}
+    @StateObject private var bleViewModel = BLECentralViewModel()
+    
+    var body: some Scene {
+        WindowGroup {
+            LandingView()
+                .environmentObject(bleViewModel)
+        }
+    }
 }

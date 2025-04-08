@@ -61,14 +61,14 @@ struct SensorResultView: View {
 
 			// Foreground progress
 			Circle()
-				.trim(from: 0, to: CGFloat(viewModel.waterLevel.percentage) / 100)
+				.trim(from: 0, to: CGFloat(viewModel.waterLevel.percentage ?? 0) / 100)
 				.stroke(waterLevelColor, style: StrokeStyle(lineWidth: 22, lineCap: .round)) // Match thickness
 				.rotationEffect(.degrees(-90))
 				.animation(.easeInOut(duration: 0.8), value: viewModel.waterLevel.percentage)
 
 			// Text inside gauge
 			VStack(spacing: 2) {
-				Text("\(Int(viewModel.waterLevel.percentage))%")
+				Text("\(Int(viewModel.waterLevel.percentage ?? 0))%")
 					.font(.system(size: 45, weight: .bold, design: .rounded)) // Slightly smaller font
 					.foregroundColor(waterLevelColor)
 					.animation(nil, value: viewModel.waterLevel.percentage) // Don't animate text itself
@@ -196,17 +196,19 @@ struct SensorResultView: View {
 
 	private var bandText: String {
 		switch viewModel.waterLevel.band {
-		case .low: return "Low Water"
-		case .humid: return "Optimal" // Shorter text
-		case .wet: return "Too Wet" // Clearer text
+			case .low: return "Low Water"
+			case .humid: return "Optimal"
+			case .wet: return "Too Wet"
+			case .none: return "Unknown"
 		}
 	}
 
 	private var recommendationIcon: Image { // Return Image directly
 		switch viewModel.waterLevel.band {
-		case .low: return Image(systemName: "exclamationmark.bubble.fill") // Softer warning
-		case .humid: return Image(systemName: "checkmark.circle.fill")
-		case .wet: return Image(systemName: "nosign.app.fill") // "Stop" sign like icon
+			case .low: return Image(systemName: "exclamationmark.bubble.fill")
+			case .humid: return Image(systemName: "checkmark.circle.fill")
+			case .wet: return Image(systemName: "nosign.app.fill")
+			case .none: return Image(systemName: "nosign.app.fill")
 		}
 	}
 }

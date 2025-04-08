@@ -120,7 +120,7 @@ struct SensorPairingView: View {
 
 	private var noDevicesView: some View {
 		VStack(spacing: 15) {
-			Image(systemName: "bluetooth.slash")
+			Image(systemName: "network.slash")
 				.font(.system(size: 50))
 				.foregroundColor(.gray)
 

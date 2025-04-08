@@ -8,18 +8,41 @@
 import Foundation
 
 struct WaterLevel {
-	let percentage: Double
 	
-	var band: WaterBand {
+	enum WaterBand {
+		case low, humid, wet
+	}
+	
+    let percentage: Double?
+	var band: WaterBand!
+    
+	// Initializer for percentage
+	init(percentage: Double) {
+		self.percentage = percentage
 		switch percentage {
 			case 0..<40:
-				return .low
+				self.band = .low
 			case 40..<70:
-				return .humid
+				self.band = .humid
 			default:
-				return .wet
+				self.band = .wet
 		}
 	}
+    
+	// Initializer for label
+    init(label: String) {
+		self.percentage = nil
+        switch label.lowercased() {
+			case "wet":
+				self.band = .wet
+			case "humid":
+				self.band = .humid
+			case "dry":
+				self.band = .low
+			default:
+				self.band = .low
+        }
+    }
 	
 	var shouldWater: Bool {
 		return band == .low
@@ -27,16 +50,16 @@ struct WaterLevel {
 	
 	var message: String {
 		switch band {
-		case .low:
-			return "Your bonsai soil is dry. Time for a drink!"
-		case .humid:
-			return "Soil moisture is optimal. Your bonsai looks happy!"
-		case .wet:
-			return "Soil is quite wet. Ensure good drainage."
+			case .low:
+				return "Your bonsai soil is dry. Time for a drink!"
+			case .humid:
+				return "Soil moisture is optimal. Your bonsai looks happy!"
+			case .wet:
+				return "Soil is quite wet. Ensure good drainage."
+			default:
+				return "Unknown"
 		}
 	}
 	
-	enum WaterBand {
-		case low, humid, wet
-	}
+	
 }

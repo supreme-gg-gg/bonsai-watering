@@ -143,30 +143,30 @@ struct PhotoResultView: View {
 		BonsaiTheme.waterLevelColor(viewModel.waterLevel.band)
 	}
 
-	// Main classification icon name
 	private var classificationIconName: String {
 		 switch viewModel.waterLevel.band {
-		 case .low: return "sun.max.fill" // Represents dryness
-		 case .humid: return "humidity.fill" // Represents optimal humidity
-		 case .wet: return "drop.fill" // Represents wetness
+			 case .low: return "sun.max.fill"
+			 case .humid: return "humidity.fill"
+			 case .wet: return "drop.fill"
+			 case .none: return "wrongwaysign.fill"
 		 }
 	}
 
-	// Text description (similar to ResultView but maybe tweaked)
 	private var bandText: String {
 		switch viewModel.waterLevel.band {
-		case .low: return "Soil is Dry"
-		case .humid: return "Soil is Humid"
-		case .wet: return "Soil is Wet"
+			case .low: return "Soil is Dry"
+			case .humid: return "Soil is Humid"
+			case .wet: return "Soil is Wet"
+			case .none: return "Unknown"
 		}
 	}
 
-	// Icon for the recommendation card (Identical to ResultView's)
 	private var recommendationIcon: Image {
 		switch viewModel.waterLevel.band {
-		case .low: return Image(systemName: "exclamationmark.bubble.fill")
-		case .humid: return Image(systemName: "checkmark.circle.fill")
-		case .wet: return Image(systemName: "nosign.app.fill")
+			case .low: return Image(systemName: "exclamationmark.bubble.fill")
+			case .humid: return Image(systemName: "checkmark.circle.fill")
+			case .wet: return Image(systemName: "nosign.app.fill")
+			case .none: return Image(systemName: "wrongwaysign.fill")
 		}
 	}
 }

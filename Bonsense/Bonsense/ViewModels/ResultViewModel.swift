@@ -17,12 +17,14 @@ class ResultViewModel: ObservableObject {
 	
 	var bandColor: Color {
 		switch waterLevel.band {
-		case .low:
-			return .red
-		case .humid:
-			return .blue
-		case .wet:
-			return .green
+			case .low:
+				return .red
+			case .humid:
+				return .blue
+			case .wet:
+				return .green
+			case .none:
+				return .black
 		}
 	}
 }
