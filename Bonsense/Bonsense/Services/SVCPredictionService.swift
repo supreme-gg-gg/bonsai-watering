@@ -49,44 +49,37 @@ enum FeatureExtractionError: Error, LocalizedError {
 	}
 }
 
-class SVCPredictionService {
+class SVCPredictionService: ObservableObject {
 
 	private let coreMLModel: CoreMLModel
-	private let featureExtractor: FeatureExtractor
-
+	
 	init() throws {
-		do {
-			// initialize feature extractor
-			self.featureExtractor = FeatureExtractor()
-			
-			// load ML model
-			let config = MLModelConfiguration()
-			self.coreMLModel = try CoreMLModel(configuration: config)
-			print("PredictionService: Core ML model loaded successfully.")
-		} catch {
-			print("PredictionService: Error loading Core ML model - \(error)")
-			throw PredictionServiceError.modelLoadingFailed(error)
-		}
+	    do {
+	        // load ML model
+	        let config = MLModelConfiguration()
+	        self.coreMLModel = try CoreMLModel(configuration: config)
+	        print("PredictionService: Core ML model loaded successfully.")
+	    } catch {
+	        print("PredictionService: Error loading Core ML model - \(error)")
+	        throw PredictionServiceError.modelLoadingFailed(error)
+	    }
 	}
-
+	
 	/// Performs prediction on the input image.
 	/// - Parameter image: The UIImage to analyze.
-	/// - Returns: A tuple containing the predicted label and probability dictionary.
+	/// - Returns: The predicted soil moisture class label.
 	/// - Throws: `PredictionServiceError` if any step fails.
 	/// - Note: This method performs potentially long-running CPU work and should be called from a background task.
 	func predict(image: UIImage) throws -> String {
-		print("PredictionService: Starting prediction...")
-		do {
-			// Extract features
-			let features = featureExtractor.extractFeatures(from: image)
-			print("PredictionService: Features extracted.")
+	    do {
+	        // Extract features using OpenCV
+	        let features = try ImageFeatureExtractor.extractFeatures(from: image)
 			
 			// Convert [Float] to the MLMultiArray type
 			let input = CoreMLModelInput(image_features: try MLMultiArray(features))
 
 			// Predict with the input type
 			let predictionOutput = try coreMLModel.prediction(input: input)
-			print("PredictionService: Core ML prediction complete.")
 
 			// Extract results under classLabel
 			let predictedLabel = predictionOutput.classLabel
