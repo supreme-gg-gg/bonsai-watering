@@ -1,10 +1,8 @@
-# Bonsense -- Listen to Your Leaves
-
-> Praxis II -- Bonsai soil moisture monitoring and watering system
+# Bonsense -- Bonsai soil moisutre analysis
 
 ![Bonsense](assets/Bonsense.png)
 
-Bonsai soil, characterized by its composition of aggregate rocks and limited organic matter, presents unique moisture retention challenges compared to regular soil. This project, a collaboration with the Toronto Bonsai Society as part of the Engineering Science Praxis II course at the University of Toronto, **addresses the difficulty beginners face in intuitively determining optimal watering times**. We introduce "Bonsense", a user-friendly, accurate, and rapid soil moisture monitoring system. Our solution integrates a mobile application leveraging machine learning with an IoT sensor setup (conductance sensor and Raspberry Pi).
+Bonsai soil, characterized by its composition of aggregate rocks and limited organic matter, presents unique moisture retention challenges compared to regular soil. This project, a collaboration with the _Toronto Bonsai Society_ as part of the Engineering Science Praxis II course at the _University of Toronto_, **addresses the difficulty beginners face in intuitively determining optimal watering times**. We introduce "Bonsense", a user-friendly, accurate, and rapid soil moisture monitoring system. Our solution integrates a mobile application leveraging machine learning with an IoT sensor setup (conductance sensor and Raspberry Pi).
 
 While we do not intend to commercialize this system due to the associated costs of components like the Apple Developer license and Raspberry Pi, our code is open-source. We encourage contributions and questions to further enhance this project.
 
