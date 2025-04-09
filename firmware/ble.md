@@ -1,5 +1,7 @@
 # The missing handbook for BLE development
 
+> To be finalized...
+
 The first time I tried to setup BLE on ESP32 and connect it to a React Native app, I failed miserably aftering wasting over 24 hours in a hackathon. Two nights without sleep just to see nothing working during the demo.
 
 The second time saw no better consequences. Raspberry Pi and Swift taught me an equally bitter lesson. Another weekend was sacrificed to the gods of BLE, with nothing in return.
@@ -10,7 +12,9 @@ I hope if you are a lost soul like I was, this guide will help you to get starte
 
 ## Background
 
-Make sure you know how BLE works before you start. Otherwise be prepared to get cooked.
+Make sure you know how BLE works before you start. Otherwise be prepared to get cooked. You can find pretty decent video on YouTube.
+
+<img src="https://miro.medium.com/v2/resize:fit:1400/1*7R_hkwuk8v7gClsVXtoqPw.png" width="75%">
 
 ## Libraries
 
@@ -31,3 +35,5 @@ The biggest difficulty of BLE development is the lack of good documentation, cle
 7. `noble` - Haven't used this one but it is a quite popular Node.js library for BLE central (not peripheral). It works on pretty much any platform as long as you have Node.js installed. Do note that JS packages simply won't work with your Python code for other raspberry pi functions such as GPIO. You will need to use `noble` in a separate process and communicate with it using sockets or some other IPC method.
 
 8. `bleno` - Often used in combination with `noble`, this is a Node.js library for BLE peripheral development. It is a good choice for Raspberry Pi and other Linux-based systems. It is actively maintained and has a simple API.
+
+## Setup
