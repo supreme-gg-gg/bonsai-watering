@@ -170,18 +170,24 @@ class BLECentralViewModel: ObservableObject {
 	}
 
 	private func mapPeripheralsToDisplay(_ peripherals: [CBPeripheral]) {
-		let targetDeviceNameLower = bleManager.serverName.lowercased() // Get target name from manager
-
-		discoveredPeripherals = peripherals // Store the actual objects
-		discoveredDevicesDisplay = peripherals.map { peripheral in
+		let targetDeviceNameLower = bleManager.serverName.lowercased()
+		
+		// Sort peripherals so target devices come first
+		let sortedPeripherals = peripherals.sorted { p1, p2 in
+			let name1 = p1.name?.lowercased() ?? ""
+			let name2 = p2.name?.lowercased() ?? ""
+			let isTarget1 = name1.contains(targetDeviceNameLower)
+			let isTarget2 = name2.contains(targetDeviceNameLower)
+			return isTarget1 && !isTarget2
+		}
+		
+		discoveredPeripherals = sortedPeripherals
+		discoveredDevicesDisplay = sortedPeripherals.map { peripheral in
 			let name = peripheral.name ?? "Unknown Device"
 			let deviceId = peripheral.identifier.uuidString.prefix(8)
 			let displayName = "\(name) (\(deviceId)...)"
-
-			// Check if this is our target device
+			
 			let isTargetDevice = name.lowercased().contains(targetDeviceNameLower)
-
-			// Add an indicator for the target device (optional)
 			return isTargetDevice ? "★ \(displayName)" : displayName
 		}
 	}

@@ -22,12 +22,12 @@
 		4B7506852DA4517F001D3FB1 /* FeatureExtraction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B7506842DA4517F001D3FB1 /* FeatureExtraction.swift */; };
 		4B75068E2DA45900001D3FB1 /* BonsenseTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B75068D2DA45900001D3FB1 /* BonsenseTests.swift */; };
 		4B7506972DA46049001D3FB1 /* FeatureExtractionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B7506962DA46049001D3FB1 /* FeatureExtractionTests.swift */; };
+		4B7F4D7E2DA579F900E02239 /* SoilClassifierSVC.mlmodel in Sources */ = {isa = PBXBuildFile; fileRef = 4B7F4D7D2DA579F800E02239 /* SoilClassifierSVC.mlmodel */; };
 		4B8C4E632DA1E8380033DC73 /* BLECentralService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B8C4E622DA1E8380033DC73 /* BLECentralService.swift */; };
 		4BC93C142D88F31C0055018E /* BluetoothViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BC93C132D88F31C0055018E /* BluetoothViewModel.swift */; };
 		4BC93C172D88F34F0055018E /* BLEPeripheralService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BC93C162D88F34F0055018E /* BLEPeripheralService.swift */; };
 		4BC93C192D88F3B10055018E /* SensorPairingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BC93C182D88F3B10055018E /* SensorPairingView.swift */; };
 		4BDBAC092DA47BF500A2035B /* InferenceTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BDBAC082DA47BF500A2035B /* InferenceTest.swift */; };
-		4BDBAC0B2DA47F8400A2035B /* SoilClassifierSVC.mlmodel in Sources */ = {isa = PBXBuildFile; fileRef = 4BDBAC0A2DA47F8400A2035B /* SoilClassifierSVC.mlmodel */; };
 		4BDBAC0D2DA47F9200A2035B /* dry.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 4BDBAC0C2DA47F9200A2035B /* dry.jpg */; };
 		4BDBAC0F2DA47F9B00A2035B /* humid.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 4BDBAC0E2DA47F9B00A2035B /* humid.jpg */; };
 		4BDBAC112DA47FA400A2035B /* wet.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 4BDBAC102DA47FA400A2035B /* wet.jpg */; };
@@ -66,12 +66,12 @@
 		4B75068B2DA45900001D3FB1 /* BonsenseTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BonsenseTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		4B75068D2DA45900001D3FB1 /* BonsenseTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BonsenseTests.swift; sourceTree = "<group>"; };
 		4B7506962DA46049001D3FB1 /* FeatureExtractionTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = FeatureExtractionTests.swift; sourceTree = "<group>"; };
+		4B7F4D7D2DA579F800E02239 /* SoilClassifierSVC.mlmodel */ = {isa = PBXFileReference; lastKnownFileType = file.mlmodel; name = SoilClassifierSVC.mlmodel; path = ../../model/models/SoilClassifierSVC.mlmodel; sourceTree = "<group>"; };
 		4B8C4E622DA1E8380033DC73 /* BLECentralService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BLECentralService.swift; sourceTree = "<group>"; };
 		4BC93C132D88F31C0055018E /* BluetoothViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BluetoothViewModel.swift; sourceTree = "<group>"; };
 		4BC93C162D88F34F0055018E /* BLEPeripheralService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BLEPeripheralService.swift; sourceTree = "<group>"; };
 		4BC93C182D88F3B10055018E /* SensorPairingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SensorPairingView.swift; sourceTree = "<group>"; };
 		4BDBAC082DA47BF500A2035B /* InferenceTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InferenceTest.swift; sourceTree = "<group>"; };
-		4BDBAC0A2DA47F8400A2035B /* SoilClassifierSVC.mlmodel */ = {isa = PBXFileReference; lastKnownFileType = file.mlmodel; name = SoilClassifierSVC.mlmodel; path = ../../model/models/SoilClassifierSVC.mlmodel; sourceTree = "<group>"; };
 		4BDBAC0C2DA47F9200A2035B /* dry.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; name = dry.jpg; path = ../../../new_samples/dry.jpg; sourceTree = "<group>"; };
 		4BDBAC0E2DA47F9B00A2035B /* humid.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; name = humid.jpg; path = ../../../new_samples/humid.jpg; sourceTree = "<group>"; };
 		4BDBAC102DA47FA400A2035B /* wet.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; name = wet.jpg; path = ../../../new_samples/wet.jpg; sourceTree = "<group>"; };
@@ -136,8 +136,8 @@
 				4B1CCDEA2D87D23300B8FD40 /* Views */,
 				4B1CCDE32D87D20D00B8FD40 /* ViewModels */,
 				4B1CCDD62D87D04F00B8FD40 /* Assets.xcassets */,
+				4B7F4D7D2DA579F800E02239 /* SoilClassifierSVC.mlmodel */,
 				4B1CCDD82D87D04F00B8FD40 /* Preview Content */,
-				4BDBAC0A2DA47F8400A2035B /* SoilClassifierSVC.mlmodel */,
 			);
 			path = Bonsense;
 			sourceTree = "<group>";
@@ -322,6 +322,7 @@
 				4B0BAEEF2DA300FC000ECE60 /* PhotoResultView.swift in Sources */,
 				4BDBAC1C2DA4864700A2035B /* ImageFeautreExtractor.swift in Sources */,
 				4BC93C172D88F34F0055018E /* BLEPeripheralService.swift in Sources */,
+				4B7F4D7E2DA579F900E02239 /* SoilClassifierSVC.mlmodel in Sources */,
 				4B1CCDF32D87D4B900B8FD40 /* Theme.swift in Sources */,
 				4B7506832DA449F3001D3FB1 /* SVCPredictionService.swift in Sources */,
 				4B1CCDE22D87D20800B8FD40 /* MoistureModel.swift in Sources */,
@@ -329,7 +330,6 @@
 				4BC93C142D88F31C0055018E /* BluetoothViewModel.swift in Sources */,
 				4B1CCDF02D87D24C00B8FD40 /* SensorResultView.swift in Sources */,
 				4B1CCDEC2D87D23E00B8FD40 /* LandingView.swift in Sources */,
-				4BDBAC0B2DA47F8400A2035B /* SoilClassifierSVC.mlmodel in Sources */,
 				4B8C4E632DA1E8380033DC73 /* BLECentralService.swift in Sources */,
 				4BDBAC172DA4804100A2035B /* OpenCVUtils.mm in Sources */,
 				4B7506852DA4517F001D3FB1 /* FeatureExtraction.swift in Sources */,

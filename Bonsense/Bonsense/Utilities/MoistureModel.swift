@@ -35,7 +35,7 @@ struct WaterLevel {
         switch label.lowercased() {
 			case "wet":
 				self.band = .wet
-			case "humid":
+			case "moist":
 				self.band = .humid
 			case "dry":
 				self.band = .low

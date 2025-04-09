@@ -39,8 +39,8 @@ class PhotoViewModel: ObservableObject {
                 let label = try await Task.detached(priority: .userInitiated) {
                     try predictionService.predict(image: image)
                 }.value
-                
-                waterLevel = WaterLevel(label: label)
+				
+				waterLevel = WaterLevel(label: label.lowercased())
                 navigateToResult = true
                 
             } catch {

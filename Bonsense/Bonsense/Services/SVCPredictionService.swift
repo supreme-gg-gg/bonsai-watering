@@ -75,6 +75,12 @@ class SVCPredictionService: ObservableObject {
 	        // Extract features using OpenCV
 	        let features = try ImageFeatureExtractor.extractFeatures(from: image)
 			
+//			print("\n=== Feature Vector ===")
+//			features.enumerated().forEach { index, value in
+//				print("Feature \(index): \(value)")
+//			}
+//			print("====================\n")
+			
 			// Convert [Float] to the MLMultiArray type
 			let input = CoreMLModelInput(image_features: try MLMultiArray(features))
 

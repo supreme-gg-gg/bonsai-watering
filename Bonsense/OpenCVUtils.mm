@@ -173,7 +173,7 @@ static cv::Mat normalizeLighting(const cv::Mat& input) {
 - (nullable NSArray<NSNumber *> *)extractFeatures:(UIImage *)image 
 									withNormalize:(BOOL)shouldNormalize
 											error:(NSError **)error {
-    const int ROI_SIZE = 256;
+    const int ROI_SIZE = 512;
     NSMutableArray<NSNumber *> *features = [NSMutableArray arrayWithCapacity:19];
     
     // Convert UIImage to cv::Mat

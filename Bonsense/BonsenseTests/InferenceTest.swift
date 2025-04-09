@@ -13,7 +13,7 @@ class InferenceTest: XCTestCase {
     
     func testSoilPredictionPipeline() throws {
         // Load a sample soil image from the app bundle
-        guard let imagePath = Bundle(for: type(of: self)).path(forResource: "wet3", ofType: "jpg"),
+        guard let imagePath = Bundle(for: type(of: self)).path(forResource: "wet", ofType: "jpg"),
               let testImage = UIImage(contentsOfFile: imagePath) else {
             XCTFail("Failed to load sample soil image")
             return

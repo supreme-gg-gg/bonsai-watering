@@ -90,7 +90,7 @@ final class FeatureExtractionTests: XCTestCase {
         let bundle = Bundle(for: type(of: self))
         
         // Load test image from bundle
-        guard let imagePath = bundle.path(forResource: "dry0", ofType: "jpg"),
+        guard let imagePath = bundle.path(forResource: "dry", ofType: "jpg"),
               let image = UIImage(contentsOfFile: imagePath) else {
             XCTFail("Failed to load test image")
             return
