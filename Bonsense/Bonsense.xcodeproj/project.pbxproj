@@ -23,6 +23,7 @@
 		4B75068E2DA45900001D3FB1 /* BonsenseTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B75068D2DA45900001D3FB1 /* BonsenseTests.swift */; };
 		4B7506972DA46049001D3FB1 /* FeatureExtractionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B7506962DA46049001D3FB1 /* FeatureExtractionTests.swift */; };
 		4B7F4D7E2DA579F900E02239 /* SoilClassifierSVC.mlmodel in Sources */ = {isa = PBXBuildFile; fileRef = 4B7F4D7D2DA579F800E02239 /* SoilClassifierSVC.mlmodel */; };
+		4B7F4D802DA6201E00E02239 /* SoilClassifierLDA_SVC.mlmodel in Sources */ = {isa = PBXBuildFile; fileRef = 4B7F4D7F2DA6201E00E02239 /* SoilClassifierLDA_SVC.mlmodel */; };
 		4B8C4E632DA1E8380033DC73 /* BLECentralService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B8C4E622DA1E8380033DC73 /* BLECentralService.swift */; };
 		4BC93C142D88F31C0055018E /* BluetoothViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BC93C132D88F31C0055018E /* BluetoothViewModel.swift */; };
 		4BC93C172D88F34F0055018E /* BLEPeripheralService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BC93C162D88F34F0055018E /* BLEPeripheralService.swift */; };
@@ -67,6 +68,7 @@
 		4B75068D2DA45900001D3FB1 /* BonsenseTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BonsenseTests.swift; sourceTree = "<group>"; };
 		4B7506962DA46049001D3FB1 /* FeatureExtractionTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = FeatureExtractionTests.swift; sourceTree = "<group>"; };
 		4B7F4D7D2DA579F800E02239 /* SoilClassifierSVC.mlmodel */ = {isa = PBXFileReference; lastKnownFileType = file.mlmodel; name = SoilClassifierSVC.mlmodel; path = ../../model/models/SoilClassifierSVC.mlmodel; sourceTree = "<group>"; };
+		4B7F4D7F2DA6201E00E02239 /* SoilClassifierLDA_SVC.mlmodel */ = {isa = PBXFileReference; lastKnownFileType = file.mlmodel; path = SoilClassifierLDA_SVC.mlmodel; sourceTree = "<group>"; };
 		4B8C4E622DA1E8380033DC73 /* BLECentralService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BLECentralService.swift; sourceTree = "<group>"; };
 		4BC93C132D88F31C0055018E /* BluetoothViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BluetoothViewModel.swift; sourceTree = "<group>"; };
 		4BC93C162D88F34F0055018E /* BLEPeripheralService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BLEPeripheralService.swift; sourceTree = "<group>"; };
@@ -137,6 +139,7 @@
 				4B1CCDE32D87D20D00B8FD40 /* ViewModels */,
 				4B1CCDD62D87D04F00B8FD40 /* Assets.xcassets */,
 				4B7F4D7D2DA579F800E02239 /* SoilClassifierSVC.mlmodel */,
+				4B7F4D7F2DA6201E00E02239 /* SoilClassifierLDA_SVC.mlmodel */,
 				4B1CCDD82D87D04F00B8FD40 /* Preview Content */,
 			);
 			path = Bonsense;
@@ -323,6 +326,7 @@
 				4BDBAC1C2DA4864700A2035B /* ImageFeautreExtractor.swift in Sources */,
 				4BC93C172D88F34F0055018E /* BLEPeripheralService.swift in Sources */,
 				4B7F4D7E2DA579F900E02239 /* SoilClassifierSVC.mlmodel in Sources */,
+				4B7F4D802DA6201E00E02239 /* SoilClassifierLDA_SVC.mlmodel in Sources */,
 				4B1CCDF32D87D4B900B8FD40 /* Theme.swift in Sources */,
 				4B7506832DA449F3001D3FB1 /* SVCPredictionService.swift in Sources */,
 				4B1CCDE22D87D20800B8FD40 /* MoistureModel.swift in Sources */,

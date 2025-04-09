@@ -70,4 +70,21 @@ class InferenceTest: XCTestCase {
             }
         }
     }
+	
+	func testSVCLDAInferencePipeline() throws {
+		guard let imagePath = Bundle(for: type(of: self)).path(forResource: "dry", ofType: "jpg"),
+			  let testImage = UIImage(contentsOfFile: imagePath) else {
+			XCTFail("Failed to load sample soil image")
+			return
+		}
+		
+		// Initialize prediction service
+		let predictionService = try LDASVCPredictionService()
+		
+		// Attempt prediction
+		let result = try predictionService.predict(image: testImage)
+		
+		// Verify we got a result
+		XCTAssertFalse(result.isEmpty, "Prediction should return a non-empty string")
+	}
 }
