@@ -2,7 +2,7 @@
 
 > Praxis II -- Bonsai soil moisture monitoring and watering system
 
-![Bonsense](assets/bonsense.png)
+![Bonsense](assets/Bonsense.png)
 
 Bonsai soil, characterized by its composition of aggregate rocks and limited organic matter, presents unique moisture retention challenges compared to regular soil. This project, a collaboration with the Toronto Bonsai Society as part of the Engineering Science Praxis II course at the University of Toronto, **addresses the difficulty beginners face in intuitively determining optimal watering times**. We introduce "Bonsense", a user-friendly, accurate, and rapid soil moisture monitoring system. Our solution integrates a mobile application leveraging machine learning with an IoT sensor setup (conductance sensor and Raspberry Pi).
 
@@ -27,7 +27,7 @@ Our approach leverages on-device machine learning to estimate soil moisture from
 
 We explored various preprocessing and augmentation techniques to optimize model performance.
 
-![LDA Visualization](assets/lda.png)
+<img src="assets/lda.png" width="75%">
 
 We developed and evaluated the following models, with performance metrics summarized below (see `model/` folder):
 
@@ -46,7 +46,7 @@ We developed and evaluated the following models, with performance metrics summar
 
 The LDA-SVM model was selected for deployment, achieving a 90% accuracy and 0.9 F1 score. The confusion matrix is shown below:
 
-![Confusion Matrix](assets/cm_90.png)
+<img src="assets/cm_90.png" width="75%">
 
 > ![NOTE]
 > We also experimented with a public dataset from [akabircs/Soil-Moisture-Imaging-Data](https://github.com/akabircs/Soil-Moisture-Imaging-Data), but achieved better results with our custom dataset and methodology.
@@ -64,7 +64,7 @@ For insights into BLE implementation, refer to our documentation [here](firmware
 
 Note that since the Raspberry Pi does not have analog input pins, we need to use an ADC (Analog to Digital Converter) to read the analog voltage from the sensor. This would not be an issue if you instead choose Arduino or ESP32/8266. We used the MCP3008 ADC with the following wiring:
 
-![MCP3008 Wiring](assets/wiring.png)
+<img src="assets/wiring.png" width="50%">
 
 ## iOS Application
 
