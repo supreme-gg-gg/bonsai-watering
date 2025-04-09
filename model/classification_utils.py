@@ -21,7 +21,7 @@ import joblib
 from typing import Tuple, List, Dict, Any
 
 # Constants
-ROI_SIZE: Tuple[int, int] = (256, 256)
+ROI_SIZE: Tuple[int, int] = (512, 512)
 AUGMENTATION_PARAMS: Dict[str, List[int]] = {
     'brightness': [-10, 10],
     'rotation': [-5, 5],
@@ -65,11 +65,17 @@ def get_center_roi(img: np.ndarray, roi_size: Tuple[int, int]) -> np.ndarray:
     start_x = max(0, start_x)
     end_y = min(h, start_y + roi_h)
     end_x = min(w, start_x + roi_w)
-    
+
     return img[start_y:end_y, start_x:end_x]
 
 def augment_image(img: np.ndarray) -> List[np.ndarray]:
-    """Apply random augmentation to image."""
+    """
+    Apply random augmentation to image.
+    Produces 3 images: 
+    1. Original
+    2. Brightness adjusted
+    3. Rotated
+    """
     augmented = []
     h, w = img.shape[:2]
     

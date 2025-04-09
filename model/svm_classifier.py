@@ -6,6 +6,9 @@ from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.pipeline import Pipeline
 from classification_utils import load_data, prepare_features, perform_evaluation, save_model
 
+WITH_LDA = True
+AUGMENT = True
+
 def train_model(X, y, n_components=2, kernel='rbf', C=10, gamma='scale', with_lda=True):
     """
     Train an LDA-enhanced SVM model on the full dataset and return it.
@@ -88,23 +91,26 @@ def perform_loocv(X, y, n_components=2, kernel='rbf', C=10, gamma='scale', with_
     return np.array(predictions), np.array(true_values), np.array(probabilities)
 
 def main():
+
     df, image_dir = load_data("../new_samples/samples.csv", "../new_samples/")
     print(f"Loaded {len(df)} samples from dataset")
     
     # Extract features (without augmentation for clearer evaluation)
-    X, y = prepare_features(df, image_dir, normalize=True, augment=False)
+    X, y = prepare_features(df, image_dir, normalize=True, augment=AUGMENT)
     print(f"Extracted {X.shape[1]} features from each sample")
     
     # Perform cross-validation to evaluate model
-    predictions, true_values, probabilities = perform_loocv(X, y, n_components=2, kernel='rbf', C=10, with_lda=True)
+    predictions, true_values, probabilities = perform_loocv(X, y, n_components=2, kernel='rbf', C=10, with_lda=WITH_LDA)
     
     perform_evaluation(true_values, predictions)
     
     # Train final model on all data
-    model = train_model(X, y, n_components=2, kernel='rbf', C=10, with_lda=True)
+    model = train_model(X, y, n_components=2, kernel='rbf', C=10, with_lda=WITH_LDA)
+
+    filename = "models/soil_lda_svm_classifier.joblib" if WITH_LDA else "models/soil_svm_classifier.joblib"
     
     # Save the model
-    save_model(model, scaler=None, feature_names=None, model_file="soil_svm_classifier.joblib",
+    save_model(model, scaler=None, feature_names=None, model_file=filename,
                model_type='SVM', class_names=['Dry', 'Moist', 'Wet'])
     
     print("\nExample of model usage:")
